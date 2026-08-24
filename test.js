@@ -112,5 +112,24 @@ check('quoted attr with > stripped cleanly',
   run([], '<p>A</p><span data-mw=\'{"wt":"x>y"}\'>B</span><p>C</p>'),
   'A\n\nBC');
 
+// 15. entity-bearing <pre> inside a wrapper div keeps its content (MDN bug):
+// decoding entities inside the pre callback used to create fake tags that
+// stripTagsSafe ate, wiping the fenced block and leaking following CSS.
+check('entity pre in wrapper div keeps content',
+  run([], '<div class="x"><pre class="a"><code>&lt;table&gt;</code></pre></div><div><pre><code>table{}</code></pre></div>'),
+  '```\n<table>\n```\n\n```\ntable{}\n```');
+
+// 16. extractReadable matches nested containers correctly (depth counting,
+// not lastIndexOf) — outer skin wrappers must not win over the article body.
+checkTrue('extractReadable depth-matched pairing',
+  (() => {
+    const page = `<html><head><style>.s{color:blue}</style></head><body>
+      <div id="skin"><nav><ul>${'<li>x</li>'.repeat(20)}</ul></nav>
+      <main><article><h1>Deep Title</h1><p>${'Body text. '.repeat(40)}</p></article></main>
+      </div></body></html>`;
+    const out = run(['-q'], page);
+    return out.includes('# Deep Title') && !out.includes('.s{color');
+  })());
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

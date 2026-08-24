@@ -174,10 +174,14 @@ function htmlToMarkdown(html) {
   md = md.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>/gi, '![$2]($1)');
   md = md.replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, '![]($1)');
 
-  md = md.replace(/<pre[^>]*>(.*?)<\/pre>/gis, (_, code) => {
+  md = md.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gis, (_, code) => {
     code = code.replace(/<code[^>]*>/gi, '').replace(/<\/code>/gi, '');
     code = code.replace(/<br\s*\/?>/gi, '\n');
-    code = code.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/>/g, '>');
+    // NOTE: do NOT decode HTML entities here. Decoding &lt; to "<" before
+    // stripTagsSafe() runs makes entity text look like a real unterminated
+    // tag ("<b&gt;" -> strip eats everything to the next ">"), which wiped
+    // out fenced-code content on real pages (MDN docs). The final decode
+    // below (after stripping) handles entities correctly.
     return '```\n' + code.trim() + '\n```\n\n';
   });
 

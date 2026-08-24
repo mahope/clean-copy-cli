@@ -144,10 +144,30 @@ function extractReadable(html) {
     .replace(/<(script|style|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
     .replace(/<(script|style|noscript|link|meta)\b[^>]*\/?>/gi, '');
 
+  // Strip <head> entirely
+  doc = doc.replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, '');
+
+  // Strip <html> and <body> wrapper tags
+  doc = doc.replace(/<\/?(?:html|body)\b[^>]*>/gi, '');
+
   // strip obvious boilerplate containers entirely
   doc = doc.replace(/<(nav|footer|header|aside|form|svg|iframe)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
 
   // score candidate containers by text length inside <article>, <main> or divs
+  // Pair each opening tag with its MATCHING close (depth counting), not
+  // lastIndexOf — lastIndexOf pairs an outer wrapper with the document's final
+  // close, so wrappers always outscore the real content block (Wikipedia's
+  // Vector skin beat #mw-content-text this way).
+  const matchingClose = (doc, from, tag) => {
+    const token = new RegExp('<(/?)' + tag + '\\b[^>]*>', 'gi');
+    token.lastIndex = from;
+    let depth = 1, m;
+    while ((m = token.exec(doc)) !== null) {
+      if (m[1] === '/') { depth--; if (depth === 0) return m.index; }
+      else if (!/\/>$/.test(m[0])) depth++;
+    }
+    return -1;
+  };
   const candidates = [];
   const re = /<(article|main|div)\b[^>]*>/gi;
   let m;
@@ -156,10 +176,13 @@ function extractReadable(html) {
   for (const start of candidates) {
     const openTagEnd = doc.indexOf('>', start);
     const tag = doc.slice(start + 1, openTagEnd).split(/\s/)[0];
-    const closeIdx = doc.lastIndexOf(`</${tag}>`);
+    if (!tag) continue;
+    const closeIdx = matchingClose(doc, openTagEnd + 1, tag);
     if (closeIdx <= openTagEnd) continue;
     const inner = doc.slice(openTagEnd + 1, closeIdx);
-    const len = inner.replace(/<[^>]*>/g, '').length;
+    // Collapse whitespace when scoring: a skin full of tab-indented empty divs
+    // must not outrank dense article text.
+    const len = inner.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().length;
     if (len > bestLen && len > 200) { best = inner; bestLen = len; }
   }
   if (best) doc = best;
