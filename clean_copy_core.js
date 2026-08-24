@@ -15,6 +15,9 @@ const CLEAN_RULES = [
   { pattern: /\u2014/g, replacement: ' -- ' },
   { pattern: /\u2013/g, replacement: ' - ' },
   { pattern: /[\u200B\u200C\u200D\uFEFF]/g, replacement: '' },
+  // U+2060 word joiner and U+2062 invisible times: Guardian articles embed
+  // these mid-word; they leak into copied output as invisible garbage.
+  { pattern: /[\u2060-\u2064\uFEFF]/g, replacement: '' },
   { pattern: /\u00A0/g, replacement: ' ' },
   // Collapse runs of spaces but never touch whitespace at line starts,
   // so Markdown list indentation survives.
@@ -170,7 +173,15 @@ function htmlToMarkdown(html) {
 
   md = md.replace(/<(?:b|strong)[^>]*>(.*?)<\/(?:b|strong)>/gi, '**$1**');
   md = md.replace(/<(?:i|em)[^>]*>(.*?)<\/(?:i|em)>/gi, '*$1*');
-  md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+  md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (m, href, inner) => {
+    // Image-card wrapper links and "View image in fullscreen" anchors add
+    // noise like "[](/link)" or "[View image](#img-1)". If the link's visible
+    // text is only an image (or empty), keep the content and drop the wrapper.
+    // Fragment-only hrefs (#img-1) are dead in copied output — unwrap those too.
+    const text = inner.replace(/<img[^>]*>/gi, '').replace(/<[^>]*>/g, '').trim();
+    if (!text || /^#/.test(href)) return inner;
+    return '[' + text + '](' + href + ')';
+  });
   md = md.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*>/gi, '![$2]($1)');
   md = md.replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, '![]($1)');
 
