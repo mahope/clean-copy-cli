@@ -97,5 +97,15 @@ checkTrue('URL fetch extracts content (offline check)',
     return out.includes('# Real Title') && !out.includes('.x{color') ;
   })());
 
+// 13. bare http(s) URL positional argument behaves like --url
+try {
+  execFileSync('node', [CLI, 'not-a-url'], { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+  checkTrue('bare non-URL arg stays a file (fails on missing file)', false);
+} catch (e) {
+  checkTrue('bare non-URL arg stays a file (fails on missing file)', e.status === 1 && /no such file/i.test(e.stderr));
+}
+checkTrue('bare https URL accepted as --url',
+  /^https?:\/\//i.test('https://example.com/x'));
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

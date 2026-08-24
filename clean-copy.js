@@ -59,7 +59,16 @@ function parseArgs(argv) {
           console.error(`clean-copy: unknown option ${a} (try --help)`);
           process.exit(2);
         }
-        opts.files.push(a);
+        // a bare http(s) URL as positional argument is accepted as --url
+        if (/^https?:\/\//i.test(a)) {
+          if (opts.url) {
+            console.error('clean-copy: only one URL at a time');
+            process.exit(2);
+          }
+          opts.url = a;
+        } else {
+          opts.files.push(a);
+        }
     }
   }
   return opts;
@@ -96,7 +105,7 @@ function fetchUrl(url, redirectsLeft = 4) {
       hostname: parsed.hostname,
       port: parsed.port || undefined,
       path: parsed.pathname + parsed.search,
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; clean-copy-cli)' , 'Accept': 'text/html' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 clean-copy-cli', 'Accept': 'text/html,application/xhtml+xml', 'Accept-Language': 'en' },
       timeout: 15000,
     }, (res) => {
       if ([301, 302, 303, 307, 308].includes(res.statusCode)) {

@@ -134,6 +134,9 @@ function htmlToMarkdown(html) {
     }
     return Object.prototype.hasOwnProperty.call(ENTITIES, body) ? ENTITIES[body] : ent;
   });
+  // Last pass: don't let decoded entities re-expand (parity with the
+  // extension's background.js, which has always done this).
+  md = md.replace(/&amp;/g, '&');
 
   md = md.replace(/\n{4,}/g, '\n\n');
   // Collapse runs of spaces, but preserve indentation at line starts
