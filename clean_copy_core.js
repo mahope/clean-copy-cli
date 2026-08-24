@@ -113,6 +113,12 @@ function htmlToMarkdown(html) {
         .replace(/\n([ \t]*)(\d+)\. /g, (all, ws, n) => '\n  ' + ws + n + '. ');
       items.push(marker + inner);
     }
+    if (items.length === 0) {
+      // Malformed markup (e.g. "<ul>" directly inside "<ul>") has no <li>
+      // children. Return the body untouched so its content survives
+      // instead of being silently dropped.
+      return '\n' + body + '\n';
+    }
     return '\n' + items.join('\n') + '\n';
   };
   let prev;
