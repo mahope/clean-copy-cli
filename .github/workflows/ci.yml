@@ -18,3 +18,30 @@ jobs:
         run: |
           echo '<h1>Hello</h1><p>World with   messy&nbsp;spacing</p>' | node clean-copy.js -q | grep -q 'World'
           node clean-copy.js --help >/dev/null
+
+  test-action:
+    runs-on: ubuntu-latest
+    name: Test GitHub Action (URL to Markdown)
+    steps:
+      - uses: actions/checkout@v4
+      - name: Convert example.com to Markdown
+        id: clean-copy
+        uses: ./
+        with:
+          url: 'https://example.com/'
+      - name: Verify output
+        run: |
+          echo "Output:"
+          echo "${{ steps.clean-copy.outputs.markdown }}"
+          echo "${{ steps.clean-copy.outputs.markdown }}" | grep -q 'Example Domain' || (echo 'FAIL: "Example Domain" not found'; exit 1)
+          echo "✅ Action test passed"
+      - name: Test plain mode
+        id: clean-copy-plain
+        uses: ./
+        with:
+          url: 'https://example.com/'
+          mode: 'plain'
+      - name: Verify plain output
+        run: |
+          echo "${{ steps.clean-copy-plain.outputs.markdown }}" | grep -q 'Example Domain' || (echo 'FAIL: plain mode failed'; exit 1)
+          echo "✅ Plain mode test passed"
