@@ -22,6 +22,39 @@ const CLEAN_RULES = [
   { pattern: /\n{3,}/g, replacement: '\n\n' },
 ];
 
+/**
+ * Strip remaining tags while tolerating ">" inside attribute values.
+ * A naive /<[^>]*>/ stops at the first ">" even when it sits inside a
+ * quoted attribute (Wikipedia's data-mw JSON, inline handlers), which
+ * leaks raw markup/JSON into the output and eats real text after it.
+ */
+function stripTagsSafe(html) {
+  let out = '';
+  let i = 0;
+  const n = html.length;
+  while (i < n) {
+    const lt = html.indexOf('<', i);
+    if (lt === -1) { out += html.slice(i); break; }
+    out += html.slice(i, lt);
+    // Find the real end of this tag: scan forward, respecting quotes.
+    let j = lt + 1, quote = null;
+    while (j < n) {
+      const ch = html[j];
+      if (quote) {
+        if (ch === quote) quote = null;
+      } else if (ch === '"' || ch === "'") {
+        quote = ch;
+      } else if (ch === '>') {
+        break;
+      }
+      j++;
+    }
+    if (j >= n) { out += html.slice(lt); break; } // unterminated tag: keep text
+    i = j + 1;
+  }
+  return out;
+}
+
 function cleanText(text) {
   let cleaned = text;
   for (const rule of CLEAN_RULES) {
@@ -246,7 +279,10 @@ function htmlToMarkdown(html) {
   md = md.replace(/<br\s*\/?>/gi, '\n');
   md = md.replace(/<hr\s*\/?>/gi, '---\n\n');
 
-  md = md.replace(/<[^>]*>/g, '');
+  // Strip remaining tags. Tolerate ">" inside attribute values (e.g. the
+  // JSON in Wikipedia's data-mw attributes): a naive <[^>]*> would stop at
+  // the inner ">", leak raw markup/JSON into the output and eat real text.
+  md = stripTagsSafe(md);
   var ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00A0',
     copy: '\u00A9', reg: '\u00AE', trade: '\u2122', hellip: '\u2026', mdash: '\u2014', ndash: '\u2013',
     lsquo: '\u2018', rsquo: '\u2019', ldquo: '\u201C', rdquo: '\u201D',

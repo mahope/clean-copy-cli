@@ -107,5 +107,10 @@ try {
 checkTrue('bare https URL accepted as --url',
   /^https?:\/\//i.test('https://example.com/x'));
 
+// 14. tag with '>' inside a quoted attribute must not leak (Wikipedia data-mw)
+check('quoted attr with > stripped cleanly',
+  run([], '<p>A</p><span data-mw=\'{"wt":"x>y"}\'>B</span><p>C</p>'),
+  'A\n\nBC');
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
