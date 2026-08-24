@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node test.js
+      - name: Smoke test CLI
+        run: |
+          echo '<h1>Hello</h1><p>World with   messy&nbsp;spacing</p>' | node clean-copy.js -q | grep -q 'World'
+          node clean-copy.js --help >/dev/null
