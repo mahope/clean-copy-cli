@@ -1,21 +1,48 @@
 # clean-copy (CLI)
 
-Copy/paste text as **clean Markdown or plain text** — straight from your terminal. The same converter engine that powers the [Clean Copy browser extensions](https://github.com/mahope/clean-copy), packaged as a dependency-free Node.js CLI.
+[![Version](https://img.shields.io/badge/version-1.3.10-blue)](https://github.com/mahope/clean-copy-cli/releases)
+[![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
+[![Homebrew](https://img.shields.io/badge/homebrew-available-green)](https://github.com/mahope/homebrew-clean-copy)
+[![GitHub Action](https://img.shields.io/badge/GitHub%20Action-available-green)](https://github.com/marketplace/actions/clean-copy-html-to-markdown)
+[![Node](https://img.shields.io/badge/node-%3E%3D16-brightgreen)](https://nodejs.org)
+[![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
 
-```
-$ echo '<h1>Title</h1><p>Some <b>bold</b> text</p>' | clean-copy
+**Copy/paste text as clean Markdown or plain text** — straight from your terminal. The same converter engine that powers the [Clean Copy browser extensions](https://github.com/mahope/clean-copy), packaged as a zero-dependency Node.js CLI.
+
+```bash
+echo '<h1>Title</h1><p>Some <b>bold</b> text</p>' | clean-copy
 # Title
 
 Some **bold** text
 ```
 
+## Use cases
+
+| Use case | Command |
+|----------|---------|
+| **Convert an HTML file to Markdown** | `clean-copy article.html` |
+| **Fetch a web page as readable Markdown** | `clean-copy -u https://example.com/blog` |
+| **macOS: paste dirty HTML, get clean Markdown** | `pbpaste \| clean-copy \| pbcopy` |
+| **Linux: same with xclip** | `xclip -o \| clean-copy \| xclip -selection c` |
+| **Git commit message from PR description** | `curl -sL https://github.com/... \| clean-copy -t` |
+| **Strip formatting from email snippets** | `clean-copy -t email_dump.html` |
+| **CI: convert a URL to Markdown in a workflow** | _See GitHub Action below_ |
+
 ## Install
 
-### Homebrew (recommended)
+### Homebrew (macOS / Linux, recommended)
 
 ```bash
 brew tap mahope/clean-copy
 brew install clean-copy
+```
+
+### Direct download (no package manager)
+
+```bash
+curl -L https://github.com/mahope/clean-copy-cli/releases/download/v1.3.10/clean-copy-1.3.10.tar.gz \
+  | tar xz --strip-components=1
+sudo cp clean-copy.js /usr/local/bin/clean-copy
 ```
 
 ### From source
@@ -23,25 +50,35 @@ brew install clean-copy
 ```bash
 git clone https://github.com/mahope/clean-copy-cli.git
 cd clean-copy-cli
-sudo cp clean-copy.js /usr/local/bin/clean-copy
-sudo cp clean_copy_core.js package.json /usr/local/lib/clean-copy/
+# Run in place:
+./clean-copy.js -u https://example.com
+# Or install globally:
+npm link
 ```
 
-Requires Node.js 16+. No dependencies, no build step.
+Requires Node.js 16+. **Zero npm dependencies** — the converter is pure JavaScript.
 
-## Usage
-
-### CLI
+## Quick start
 
 ```bash
-clean-copy [options] [file ...]     # convert files, or stdin if no file given
-clean-copy --url <url>              # fetch a page, extract its main content as Markdown
+# Convert HTML from stdin
+echo '<h1>Hi</h1><p>Some <b>bold</b> text</p>' | clean-copy
+# → # Hi\n\nSome **bold** text
 
-echo '<h1>Hi</h1>' | clean-copy                 # stdin -> stdout
-pbpaste | clean-copy | pbcopy                   # macOS clipboard round-trip
-clean-copy -u https://example.com/article.md    # web page -> readable Markdown
-clean-copy -t notes.html                        # plain text instead of Markdown
-clean-copy -c dirty.html                        # also copy result to clipboard
+# Convert a local HTML file to Markdown
+clean-copy -o output.md article.html
+
+# Fetch a web page and extract readable content as Markdown
+clean-copy -u https://en.wikipedia.org/wiki/Markdown > wikipedia.md
+
+# Plain text mode (strips all Markdown formatting)
+clean-copy -t rich_text.html
+
+# macOS: round-trip clipboard through cleaner
+pbpaste | clean-copy | pbcopy
+
+# Copy result to clipboard AND save to file
+clean-copy -c -o cleaned.md dirty.html
 ```
 
 ### GitHub Action
