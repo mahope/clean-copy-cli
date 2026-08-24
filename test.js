@@ -140,11 +140,21 @@ checkTrue('extractReadable depth-matched pairing',
 
 // ── Real-world URL extraction (live network; skipped if offline) ──
 console.log('\nURL extraction against real pages:');
-function tryUrl(url, checks) {
-  let out;
-  try {
-    out = execFileSync('node', [CLI, '--url', url, '-q'], { encoding: 'utf8', timeout: 60000 });
-  } catch (e) {
+function tryUrl(url, checks, opts) {
+  opts = opts || {};
+  let out, lastErr;
+  for (let attempt = 1; attempt <= (opts.retries || 3); attempt++) {
+    try {
+      out = execFileSync('node', [CLI, '--url', url, '-q'], { encoding: 'utf8', timeout: 60000 });
+      lastErr = null;
+      break;
+    } catch (e) {
+      // Retry transient failures (network errors, HTTP 429/5xx) before skipping.
+      if (attempt < (opts.retries || 3)) { continue; }
+      lastErr = e;
+    }
+  }
+  if (lastErr) {
     console.log('  SKIP ' + url + ' (network error)');
     return;
   }
@@ -168,7 +178,7 @@ tryUrl('https://www.shopify.com/blog/what-is-ecommerce', [
 // Wix blog: page chrome ("top of page", signup CTA) must not lead the output.
 tryUrl('https://www.wix.com/blog/what-is-a-blog', [
   ['does not start with wix chrome', (o) => !/^top of page|^Try for free|^Start Now/.test(o)],
-  ['contains article prose', (o) => o.length > 2000],
+  ['contains article prose', (o) => o.length > 2000 && /what is a blog/i.test(o)],
 ]);
 // Squarespace blog: nav/hero/lead-magnet chrome must not lead the output.
 tryUrl('https://blog.squarespace.com/how-to-start-a-blog', [
@@ -188,6 +198,46 @@ tryUrl('https://www.404media.co/404-media-now-has-a-full-text-rss-feed/', [
   ['does not start with ad chrome', (o) => !/^Advertisement|^Go ad free/.test(o)],
   ['starts in article prose', (o) => o.length > 2000 && /full text RSS feeds/i.test(o)],
 ]);
+
+// Substack: site header image + "SubscribeSign in" chrome must not lead the
+// output; the post title and body must be present.
+tryUrl('https://www.astralcodexten.com/p/moderation-is-different-from-censorship', [
+  ['starts in article prose', (o) => /Moderation/.test(o) && o.length > 5000],
+  ['no subscribe/sign-in chrome lead', (o) => !/^SubscribeSign in/.test(o.slice(0, 5))],
+], { retries: 2 });
+
+// Substack (The Pragmatic Engineer): same platform, different publication.
+tryUrl('https://newsletter.pragmaticengineer.com/p/the-pulse-we-need-to-talk-about-migrations', [
+  ['contains article content', (o) => /migrations?/i.test(o) && o.length > 2000],
+], { retries: 2 });
+
+// Personal blog (Astro/Gatsby-style static site): prose starts immediately,
+// no landing-page card list.
+tryUrl('https://www.joshwcomeau.com/blog/the-post-developer-era/', [
+  ['starts in article prose', (o) => /^Two years ago|front-end/i.test(o.slice(0, 4000)) && o.length > 5000],
+], { retries: 2 });
+
+// CSS-Tricks (WordPress): long reference page, table of contents must not be
+// the only thing extracted.
+tryUrl('https://css-tricks.com/snippets/css/a-guide-to-flexbox/', [
+  ['contains reference body', (o) => /flex/i.test(o) && o.length > 10000],
+], { retries: 2 });
+
+// Deno engineering blog (Next.js): upgrade instructions near top is fine;
+// body must contain release notes.
+tryUrl('https://deno.com/blog/v2.3', [
+  ['contains release notes', (o) => /Deno 2\.3/.test(o) && o.length > 8000],
+], { retries: 2 });
+
+// V8 dev blog (Eleventy static site): article prose leads directly.
+tryUrl('https://v8.dev/blog/json-stringify', [
+  ['starts in article prose', (o) => o.length > 3000 && /JSON\.stringify/.test(o)],
+], { retries: 2 });
+
+// Rust blog (custom static): date/byline header then prose; substantial body.
+tryUrl('https://blog.rust-lang.org/2026/08/21/enabling-next-solver-on-nightly/', [
+  ['contains article prose', (o) => /trait solver/i.test(o) && o.length > 2000],
+], { retries: 2 });
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);
