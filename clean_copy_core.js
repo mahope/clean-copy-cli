@@ -53,6 +53,24 @@ function htmlToMarkdown(html) {
     return parts.length ? '\n' + parts.join('\n') + '\n\n' : '';
   });
 
+  // Figure captions: separate the caption from the image so it doesn't
+  // glue onto the end of the ![](src) line.
+  md = md.replace(/<figcaption[^>]*>([\s\S]*?)<\/figcaption>/gi,
+    (_, cap) => '\n\n' + cap + '\n\n');
+
+  // Blockquotes: convert innermost-first (like nested lists), prefixing every
+  // line of the quoted content with "> " so Markdown quoting survives.
+  let bqPrev;
+  do {
+    bqPrev = md;
+    md = md.replace(/<blockquote[^>]*>((?:(?!<\/?blockquote)[\s\S])*)<\/blockquote>/gi,
+      (_, body) => {
+        const inner = htmlToMarkdown(body);
+        const quoted = inner.split('\n').map(l => (l ? '> ' + l : '>')).join('\n');
+        return '\n' + quoted + '\n';
+      });
+  } while (md !== bqPrev);
+
   md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n');
   md = md.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n');
   md = md.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n');
