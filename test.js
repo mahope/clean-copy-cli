@@ -170,5 +170,11 @@ tryUrl('https://www.wix.com/blog/what-is-a-blog', [
   ['does not start with wix chrome', (o) => !/^top of page|^Try for free|^Start Now/.test(o)],
   ['contains article prose', (o) => o.length > 2000],
 ]);
+// Squarespace blog: nav/hero/lead-magnet chrome must not lead the output.
+tryUrl('https://blog.squarespace.com/how-to-start-a-blog', [
+  ['does not start with squarespace chrome', (o) => !/^\[Making It\]/.test(o)],
+  ['starts in article prose', (o) => o.length > 3000 && /blog/i.test(o.slice(0, 300))],
+]);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);

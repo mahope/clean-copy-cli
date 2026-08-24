@@ -193,44 +193,57 @@ function extractReadable(html) {
     } catch { /* fall through to DOM heuristic */ }
   }
 
-  const candidates = [];
-  const re = /<(article|main|div|section)\b[^>]*>/gi;
-  let m;
-  while ((m = re.exec(doc)) !== null) {
-    const attrs = m[0];
-    if (/\b(hidden|display\s*:\s*none|visibility\s*:\s*hidden)\b/i.test(attrs)) continue;
-    if (/(class|id)=["'][^"']*(?:comment|sidebar|promo|advert|ads?[-_ ]|cookie|newsletter|signup|paywall|related|share[-_ ]?(?:bar|buttons)|social[-_ ]?(?:bar|buttons)?|footer|header[-_ ]?)\b[^"']*["']/i.test(attrs)) continue;
-    candidates.push(m.index);
-  }
-  let best = null, bestScore = 0;
-  for (const start of candidates) {
-    const openTagEnd = doc.indexOf('>', start);
-    const tag = doc.slice(start + 1, openTagEnd).split(/\s/)[0];
-    if (!tag) continue;
-    const closeIdx = matchingClose(doc, openTagEnd + 1, tag);
-    if (closeIdx <= openTagEnd) continue;
-    const inner = doc.slice(openTagEnd + 1, closeIdx);
-    // Collapse whitespace when scoring: a skin full of tab-indented empty divs
-    // must not outrank dense article text.
+  const scoreBlock = (inner, tag) => {
     const text = inner.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
-    if (text.length < 200) continue;
-    // Link density: navigation blocks are mostly links. Penalise them so a
-    // menu-heavy wrapper loses to a prose-heavy block of similar size.
     let linksLen = 0, lm;
     const linkRe = /<a\b[^>]*>([\s\S]*?)<\/a>/gi;
     while ((lm = linkRe.exec(inner)) !== null) {
       linksLen += lm[1].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().length;
     }
     const density = text.length ? linksLen / text.length : 1;
-    let score = text.length * (1 - density * 0.8);
-    // A real <article> element is a strong signal this is the content block,
-    // even when a bigger nav-tangled wrapper scores slightly higher on size.
-    if (/^article$/i.test(tag)) score *= 1.25;
-    if (score > bestScore) { best = inner; bestScore = score; }
-  }
-  if (best) doc = best;
+    let s = text.length * (1 - density * 0.8);
+    if (/^article$/i.test(tag)) s *= 1.25;
+    return { score: s, textLen: text.length };
+  };
 
-  return doc;
+  // Score every candidate container; then refine REPEATEDLY into the nested
+  // best block while it keeps >=60% of its parent's score and stays
+  // substantial. Big CMS wrappers (Squarespace, Wix) win on sheer size but are
+  // mostly chrome around the article; each refinement step peels one layer.
+  const CHROME = /(?:comment|sidebar|promo|advert|ads?[-_ ]|cookie|newsletter|signup|paywall|related|share[-_ ]?(?:bar|buttons)|social[-_ ]?(?:bar|buttons)?|footer|header[-_ ]?|hero[-_ ]?(?:image|banner)?|breadcrumb|lead[-_ ]?magnet|subscribe|byline|menu|breadcrumb)/i;
+
+  const findBest = (html) => {
+    let best = null, bestScore = 0;
+    const re = /<(article|main|div|section)\b[^>]*>/gi;
+    let m;
+    while ((m = re.exec(html)) !== null) {
+      const attrs = m[0];
+      if (/\b(hidden|display\s*:\s*none|visibility\s*:\s*hidden)\b/i.test(attrs)) continue;
+      if (/(class|id)=["'][^"']*["'][^>]/i.test(attrs) === false && !/^<(article|main)\b/i.test(m[0])) continue;
+      if (CHROME.test((/(class|id)=["']([^"']*)["']/i.exec(attrs) || [,''])[2])) continue;
+      const openTagEnd = html.indexOf('>', m.index);
+      const tag = html.slice(m.index + 1, openTagEnd).split(/\s/)[0];
+      if (!tag) continue;
+      const closeIdx = matchingClose(html, openTagEnd + 1, tag);
+      if (closeIdx <= openTagEnd) continue;
+      const inner = html.slice(openTagEnd + 1, closeIdx);
+      // Collapse whitespace when scoring: a skin full of tab-indented empty
+      // divs must not outrank dense article text.
+      const { score, textLen } = scoreBlock(inner, tag);
+      if (textLen < 200) continue;
+      if (score > bestScore) { best = { inner, tag, score }; bestScore = score; }
+    }
+    return best;
+  };
+
+  let cur = findBest(doc);
+  if (!cur) return doc;
+  for (let depth = 0; depth < 6; depth++) {
+    const next = findBest(cur.inner);
+    if (!next || next.score < cur.score * 0.6) break;
+    cur = next;
+  }
+  return cur.inner;
 }
 
 function readStdin() {
