@@ -55,7 +55,8 @@ jobs:
       - run: ./tools/make_tarball.sh
       - name: Tarball contents must include core + docs
         run: |
-          tar -tzf clean-copy-*.tar.gz | tee /tmp/contents.txt
+          VERSION=$(node -p "require('./package.json').version")
+          tar -tzf "clean-copy-${VERSION}.tar.gz" | tee /tmp/contents.txt
           grep -q clean_copy_core.js /tmp/contents.txt
           grep -q README.md /tmp/contents.txt
           grep -q LICENSE /tmp/contents.txt
