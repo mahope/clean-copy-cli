@@ -44,6 +44,22 @@ jobs:
           printf '%s\n' "${{ steps.clean-copy-plain.outputs.markdown }}" | grep -q 'Example Domain' || (echo 'FAIL: plain mode failed'; exit 1)
           echo "✅ Plain mode test passed"
 
+  verify-tarball:
+    runs-on: ubuntu-latest
+    name: Verify release tarball is complete and runnable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: ./tools/make_tarball.sh
+      - name: Tarball contents must include core + docs
+        run: |
+          tar -tzf clean-copy-*.tar.gz | tee /tmp/contents.txt
+          grep -q clean_copy_core.js /tmp/contents.txt
+          grep -q README.md /tmp/contents.txt
+          grep -q LICENSE /tmp/contents.txt
+
   test-file-input:
     runs-on: ubuntu-latest
     name: Test GitHub Action (file input)
