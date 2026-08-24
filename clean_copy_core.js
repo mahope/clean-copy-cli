@@ -33,6 +33,10 @@ function cleanText(text) {
 function htmlToMarkdown(html) {
   let md = html;
 
+  // Strip script/style/noscript/template content BEFORE any tag rules run —
+  // otherwise JS/CSS text leaks into the output as plain text.
+  md = md.replace(/<(script|style|noscript|template|head)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
+
   md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n');
   md = md.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n');
   md = md.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n');
