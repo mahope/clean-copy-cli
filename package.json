@@ -1,0 +1,14 @@
+{
+  "name": "clean-copy-cli",
+  "version": "1.0.0",
+  "description": "Copy/paste text as clean Markdown or plain text — the Clean Copy converter as a command-line tool",
+  "main": "clean-copy.js",
+  "bin": { "clean-copy": "clean-copy.js" },
+  "scripts": { "test": "node test.js" },
+  "keywords": [
+    "markdown", "html-to-markdown", "clipboard", "paste",
+    "clean-text", "cli", "copy-paste"
+  ],
+  "license": "MIT",
+  "repository": "https://github.com/mahope/homebrew-clean-copy"
+}
