@@ -1,6 +1,6 @@
 {
   "name": "clean-copy-cli",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Copy/paste text as clean Markdown or plain text \u2014 the Clean Copy converter as a command-line tool",
   "main": "clean-copy.js",
   "bin": {

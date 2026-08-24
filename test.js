@@ -137,5 +137,25 @@ checkTrue('extractReadable depth-matched pairing',
     return out.includes('# Deep Title') && !out.includes('.s{color');
   })());
 
+
+// ── Real-world URL extraction (live network; skipped if offline) ──
+console.log('\nURL extraction against real pages:');
+function tryUrl(url, checks) {
+  let out;
+  try {
+    out = execFileSync('node', [CLI, '--url', url, '-q'], { encoding: 'utf8', timeout: 60000 });
+  } catch (e) {
+    console.log('  SKIP ' + url + ' (network error)');
+    return;
+  }
+  for (const [name, fn] of checks) checkTrue(url + ': ' + name, fn(out), 'output started: ' + JSON.stringify(out.slice(0, 120)));
+}
+
+// Wikipedia: maintenance banner and hatnote must not lead the output
+tryUrl('https://en.wikipedia.org/wiki/Markdown', [
+  ['does not start with maintenance/hatnote cruft',
+   (o) => !/^(From Wikipedia|Skip to content|This article \*\*relies)/.test(o)],
+  ['contains main article prose', (o) => /Markdown/.test(o) && o.length > 5000],
+]);
 console.log(`\n${pass} passed, ${fail} failed`);
-process.exit(fail ? 1 : 0);
+process.exit(fail > 0 ? 1 : 0);

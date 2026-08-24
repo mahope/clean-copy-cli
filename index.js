@@ -105,6 +105,7 @@ function fetchUrl(url, redirectsLeft = 4) {
  * content block. Falls back to full-body conversion if nothing
  * substantial is found.
  */
+// candidates, JSON-LD articleBody preference.
 function extractReadable(html) {
   let doc = html
     .replace(/<!--[\s\S]*?-->/g, '')
@@ -117,23 +118,68 @@ function extractReadable(html) {
   // Strip <html> and <body> wrapper tags
   doc = doc.replace(/<\/?(?:html|body)\b[^>]*>/gi, '');
 
-  // Strip boilerplate containers
-  doc = doc.replace(/<(nav|footer|header|aside|form|svg|iframe)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
+  // Strip obvious boilerplate containers entirely
+  // MediaWiki maintenance boxes and print-only cruft
+  doc = doc.replace(/<table\b[^>]*\bclass=["'][^"']*(?:ambox|ombox|tmbox|cmbox|fmbox|mbox)[^"']*["'][^>]*>[\s\S]*?<\/table>/gi, '');
+  doc = doc.replace(/<(\w+)\b[^>]*\bclass=["'][^"']*(?:noprint|noexcerpt|shortdescription|navbox|vertical-navbox|metadata|mw-editsection|mw-jump-link|sidebar)[^"']*["'][^>]*>(?:(?!<\/\1[\s>])[\s\S])*?<\/\1>/gi, '');
 
-  // Score candidate containers by text length
+  doc = doc.replace(/<(nav|footer|header|aside|form|svg|iframe)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
+  // ARIA/role-based boilerplate: role="navigation"|"banner"|"contentinfo"|"complementary"
+  doc = doc.replace(/<(\w+)\b[^>]*\brole=["'](navigation|banner|contentinfo|complementary)["'][^>]*>[\s\S]*?<\/\1>/gi, '');
+
+  // Prefer structured article body when present (news sites, blogs)
+  const jsonld = /application\/ld\+json[\s\S]*?"articleBody"\s*:\s*"((?:[^"\\]|\\.)*)"/i.exec(doc);
+  if (jsonld && jsonld[1].length > 200) {
+    try {
+      const text = JSON.parse('"' + jsonld[1] + '"');
+      return '<p>' + text.replace(/\n\n+/g, '</p><p>').replace(/\n/g, ' ') + '</p>';
+    } catch { /* fall through to DOM heuristic */ }
+  }
+
+  // Pair each opening tag with its MATCHING close (depth counting), not
+  // lastIndexOf — lastIndexOf pairs an outer wrapper with the document's final
+  // close, so wrappers always outscore the real content block.
+  const matchingClose = (doc, from, tag) => {
+    const token = new RegExp('<(/?)' + tag + '\\b[^>]*>', 'gi');
+    token.lastIndex = from;
+    let depth = 1, m;
+    while ((m = token.exec(doc)) !== null) {
+      if (m[1] === '/') { depth--; if (depth === 0) return m.index; }
+      else if (!/\/>$/.test(m[0])) depth++;
+    }
+    return -1;
+  };
   const candidates = [];
-  const re = /<(article|main|div)\b[^>]*>/gi;
+  const re = /<(article|main|div|section)\b[^>]*>/gi;
   let m;
-  while ((m = re.exec(doc)) !== null) candidates.push(m.index);
-  let best = null, bestLen = 0;
+  while ((m = re.exec(doc)) !== null) {
+    const attrs = m[0];
+    if (/\b(hidden|display\s*:\s*none|visibility\s*:\s*hidden)\b/i.test(attrs)) continue;
+    if (/(class|id)=["'][^"']*(?:comment|sidebar|promo|advert|ads?[-_ ]|cookie|newsletter|signup|paywall|related|share[-_ ]?(?:bar|buttons)|social[-_ ]?(?:bar|buttons)?|footer|header[-_ ]?)\b[^"']*["']/i.test(attrs)) continue;
+    candidates.push(m.index);
+  }
+  let best = null, bestScore = 0;
   for (const start of candidates) {
     const openTagEnd = doc.indexOf('>', start);
     const tag = doc.slice(start + 1, openTagEnd).split(/\s/)[0];
-    const closeIdx = doc.lastIndexOf(`</${tag}>`);
+    if (!tag) continue;
+    const closeIdx = matchingClose(doc, openTagEnd + 1, tag);
     if (closeIdx <= openTagEnd) continue;
     const inner = doc.slice(openTagEnd + 1, closeIdx);
-    const len = inner.replace(/<[^>]*>/g, '').length;
-    if (len > bestLen && len > 200) { best = inner; bestLen = len; }
+    // Collapse whitespace when scoring: a skin full of tab-indented empty divs
+    // must not outrank dense article text.
+    const text = inner.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    if (text.length < 200) continue;
+    // Link density: navigation blocks are mostly links. Penalise them so a
+    // menu-heavy wrapper loses to a prose-heavy block of similar size.
+    let linksLen = 0, lm;
+    const linkRe = /<a\b[^>]*>([\s\S]*?)<\/a>/gi;
+    while ((lm = linkRe.exec(inner)) !== null) {
+      linksLen += lm[1].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().length;
+    }
+    const density = text.length ? linksLen / text.length : 1;
+    const score = text.length * (1 - density * 0.8);
+    if (score > bestScore) { best = inner; bestScore = score; }
   }
   if (best) doc = best;
 
