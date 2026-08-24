@@ -1,20 +1,30 @@
-name: 'Clean Copy — URL to Markdown'
+name: 'Clean Copy — HTML to Markdown'
 description: >-
-  Fetch a URL and convert its main content to clean Markdown or plain text.
-  Uses the same converter engine as the Clean Copy browser extension and CLI.
-  Zero dependencies, no API key, no third-party service.
+  Convert HTML to clean Markdown or plain text. Accepts a URL (fetch + extract),
+  a local file path, or a raw HTML string. Zero dependencies, no API key,
+  no third-party service. Uses the same engine as the Clean Copy browser
+  extension and CLI.
 author: 'mahope'
 branding:
   icon: 'clipboard'
   color: 'blue'
 inputs:
   url:
-    description: 'URL to fetch and convert to Markdown'
-    required: true
+    description: 'URL to fetch, extract readable content, and convert to Markdown'
+    required: false
+  file:
+    description: 'Path to a local HTML file in the repo to convert'
+    required: false
+  html:
+    description: 'Raw HTML string to convert (for CI pipelines that generate HTML)'
+    required: false
   mode:
     description: 'Output format: "markdown" (default) or "plain"'
     required: false
     default: 'markdown'
+  output_file:
+    description: 'Write the result to this file path (e.g. for use in later workflow steps)'
+    required: false
 outputs:
   markdown:
     description: 'The converted content in Markdown or plain text'

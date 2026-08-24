@@ -31,10 +31,8 @@ jobs:
           url: 'https://example.com/'
       - name: Verify output
         run: |
-          echo "Output:"
-          echo "${{ steps.clean-copy.outputs.markdown }}"
           echo "${{ steps.clean-copy.outputs.markdown }}" | grep -q 'Example Domain' || (echo 'FAIL: "Example Domain" not found'; exit 1)
-          echo "✅ Action test passed"
+          echo "✅ URL action test passed"
       - name: Test plain mode
         id: clean-copy-plain
         uses: ./
@@ -45,3 +43,56 @@ jobs:
         run: |
           echo "${{ steps.clean-copy-plain.outputs.markdown }}" | grep -q 'Example Domain' || (echo 'FAIL: plain mode failed'; exit 1)
           echo "✅ Plain mode test passed"
+
+  test-file-input:
+    runs-on: ubuntu-latest
+    name: Test GitHub Action (file input)
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create a test HTML file
+        run: |
+          cat > /tmp/test.html << 'EOF'
+          <html><body><h1>File Input Test</h1><p>This is <b>bold</b> text converted from a file.</p></body></html>
+          EOF
+      - name: Convert file to Markdown
+        id: convert-file
+        uses: ./
+        with:
+          file: /tmp/test.html
+      - name: Verify file output
+        run: |
+          echo "${{ steps.convert-file.outputs.markdown }}" | grep -q 'File Input Test' || (echo 'FAIL: title not found'; exit 1)
+          echo "${{ steps.convert-file.outputs.markdown }}" | grep -q '**bold**' || (echo 'FAIL: bold not found'; exit 1)
+          echo "✅ File input test passed"
+
+  test-html-input:
+    runs-on: ubuntu-latest
+    name: Test GitHub Action (html input)
+    steps:
+      - uses: actions/checkout@v4
+      - name: Convert raw HTML to Markdown
+        id: convert-html
+        uses: ./
+        with:
+          html: '<h1>Raw HTML</h1><ul><li>Item 1</li><li>Item 2</li></ul>'
+      - name: Verify html output
+        run: |
+          echo "${{ steps.convert-html.outputs.markdown }}" | grep -q 'Raw HTML' || (echo 'FAIL: title not found'; exit 1)
+          echo "${{ steps.convert-html.outputs.markdown }}" | grep -q '- Item 1' || (echo 'FAIL: list item not found'; exit 1)
+          echo "✅ HTML input test passed"
+
+  test-output-file:
+    runs-on: ubuntu-latest
+    name: Test GitHub Action (output_file)
+    steps:
+      - uses: actions/checkout@v4
+      - name: Convert with output_file
+        uses: ./
+        with:
+          html: '<h1>Output File Test</h1><p>Written to a file.</p>'
+          output_file: /tmp/result.md
+      - name: Verify output_file
+        run: |
+          test -f /tmp/result.md || (echo 'FAIL: output file not created'; exit 1)
+          grep -q 'Output File Test' /tmp/result.md || (echo 'FAIL: content not found in output file'; exit 1)
+          echo "✅ Output file test passed"

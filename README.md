@@ -46,7 +46,7 @@ clean-copy -c dirty.html                        # also copy result to clipboard
 
 ### GitHub Action
 
-Convert any URL to clean Markdown directly in your workflow:
+Convert any URL, local file, or raw HTML to clean Markdown directly in your workflow:
 
 ```yaml
 - uses: mahope/clean-copy-cli@v1
@@ -58,14 +58,56 @@ Convert any URL to clean Markdown directly in your workflow:
   run: echo "${{ steps.clean-copy.outputs.markdown }}" > article.md
 ```
 
-The action fetches the URL, extracts the main readable content, and converts it to Markdown (or plain text). Uses the same converter engine as the CLI and browser extension.
+Convert a local HTML file in the repo:
 
-| Input | Default | Description |
-|-------|---------|-------------|
-| `url` | (required) | URL to fetch and convert |
-| `mode` | `markdown` | Output format: `markdown` or `plain` |
+```yaml
+- uses: mahope/clean-copy-cli@v1
+  with:
+    file: 'docs/draft.html'
+    output_file: 'docs/draft.md'
+```
+
+Convert raw HTML from a CI step:
+
+```yaml
+- uses: mahope/clean-copy-cli@v1
+  with:
+    html: '<h1>Generated</h1><p>CI output</p>'
+    mode: 'markdown'
+```
+
+| Input          | Default      | Description                                                    |
+|----------------|--------------|----------------------------------------------------------------|
+| `url`          | (optional)   | URL to fetch and convert (one of url/file/html required)       |
+| `file`         | (optional)   | Path to a local HTML file in the repo to convert               |
+| `html`         | (optional)   | Raw HTML string to convert directly                            |
+| `mode`         | `markdown`   | Output format: `markdown` or `plain`                           |
+| `output_file`  | (optional)   | Write the result to this file path for use in later steps      |
 
 **Output:** `markdown` — the converted content.
+
+**Example: weekly page snapshot as a PR**
+
+```yaml
+name: Weekly snapshot
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Monday 06:00 UTC
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mahope/clean-copy-cli@v1
+        with:
+          url: 'https://example.com/changelog'
+          output_file: 'docs/changelog-snapshot.md'
+      - uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: 'chore: update changelog snapshot'
+          title: 'Weekly changelog snapshot'
+          branch: snapshot/changelog
+```
 
 ### Options
 

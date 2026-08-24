@@ -1,17 +1,19 @@
 #!/usr/bin/env node
 /**
- * Clean Copy — GitHub Action
+ * Clean Copy — GitHub Action v1.3.0
  *
- * Fetches a URL, extracts its main readable content, and converts it
- * to clean Markdown or plain text. Same engine as the Clean Copy
- * browser extension and CLI.
+ * Converts HTML to clean Markdown or plain text. Accepts input from a URL,
+ * a local file path, or a raw HTML string.
  *
  * Inputs:
- *   url   — URL to fetch (required)
- *   mode  — "markdown" (default) or "plain"
+ *   url          — URL to fetch and convert (optional, one of url/file/html required)
+ *   file         — local file path to read and convert (optional)
+ *   html         — raw HTML string to convert (optional)
+ *   mode         — "markdown" (default) or "plain"
+ *   output_file  — write result to this file path (optional)
  *
  * Outputs:
- *   markdown — the converted content
+ *   markdown     — the converted content
  */
 'use strict';
 
@@ -109,13 +111,13 @@ function extractReadable(html) {
     .replace(/<(script|style|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
     .replace(/<(script|style|noscript|link|meta)\b[^>]*\/?>/gi, '');
 
-  // Strip <head> entirely (title, meta, etc. are not page content)
+  // Strip <head> entirely
   doc = doc.replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, '');
 
-  // Strip <html> and <body> wrapper tags (leave their content)
+  // Strip <html> and <body> wrapper tags
   doc = doc.replace(/<\/?(?:html|body)\b[^>]*>/gi, '');
 
-  // Strip obvious boilerplate containers
+  // Strip boilerplate containers
   doc = doc.replace(/<(nav|footer|header|aside|form|svg|iframe)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
 
   // Score candidate containers by text length
@@ -138,6 +140,11 @@ function extractReadable(html) {
   return doc;
 }
 
+/** Check if a string looks like a full HTML document. */
+function looksLikeHtmlDoc(input) {
+  return /<html[\s>]|<!doctype/i.test(String(input).slice(0, 512));
+}
+
 function convert(html, mode) {
   if (mode === 'plain') {
     const stripped = String(html).replace(/<[^>]*>/g, '\n');
@@ -152,32 +159,68 @@ function convert(html, mode) {
 
 async function main() {
   const url = getInput('url');
+  const filePath = getInput('file');
+  const rawHtml = getInput('html');
   const mode = getInput('mode') || 'markdown';
-
-  if (!url) {
-    setFailed('Input "url" is required. Provide a URL to convert to Markdown.');
-    return;
-  }
-
-  if (!/^https?:\/\//i.test(url)) {
-    setFailed(`Invalid URL: "${url}". Must start with http:// or https://`);
-    return;
-  }
+  const outputFile = getInput('output_file');
 
   if (!['markdown', 'plain'].includes(mode)) {
     setFailed(`Invalid mode: "${mode}". Must be "markdown" or "plain".`);
     return;
   }
 
-  try {
+  // Determine input source (priority: url > file > html)
+  let input;
+  let sourceLabel;
+
+  if (url) {
+    if (!/^https?:\/\//i.test(url)) {
+      setFailed(`Invalid URL: "${url}". Must start with http:// or https://`);
+      return;
+    }
+    sourceLabel = url;
     const html = await fetchUrl(url);
-    const readable = extractReadable(html);
-    const result = convert(readable, mode);
+    input = extractReadable(html);
+  } else if (filePath) {
+    sourceLabel = filePath;
+    try {
+      input = fs.readFileSync(filePath, 'utf8');
+    } catch (err) {
+      setFailed(`Cannot read file "${filePath}": ${err.message}`);
+      return;
+    }
+    // For full HTML documents, extract readable content
+    if (looksLikeHtmlDoc(input) && mode === 'markdown') {
+      input = extractReadable(input);
+    }
+  } else if (rawHtml) {
+    sourceLabel = 'raw HTML input';
+    input = rawHtml;
+    // For full HTML documents, extract readable content
+    if (looksLikeHtmlDoc(input) && mode === 'markdown') {
+      input = extractReadable(input);
+    }
+  } else {
+    setFailed('One of "url", "file", or "html" input is required.');
+    return;
+  }
+
+  try {
+    const result = convert(input, mode);
+
+    // Set the output
     setOutput('markdown', result);
-    console.log(`Clean Copy: converted ${url} (${result.length} chars, ${result.split(/\s+/).filter(Boolean).length} words)`);
+
+    // Write to file if requested
+    if (outputFile) {
+      fs.writeFileSync(outputFile, result + '\n');
+    }
+
+    const words = result.split(/\s+/).filter(Boolean).length;
+    console.log(`Clean Copy: converted ${sourceLabel} (${result.length} chars, ${words} words)${outputFile ? ` -> ${outputFile}` : ''}`);
   } catch (err) {
     setFailed(err.message);
   }
 }
 
-main();
+main().catch((err) => setFailed(err.message));
