@@ -1,0 +1,23 @@
+name: 'Clean Copy — URL to Markdown'
+description: >-
+  Fetch a URL and convert its main content to clean Markdown or plain text.
+  Uses the same converter engine as the Clean Copy browser extension and CLI.
+  Zero dependencies, no API key, no third-party service.
+author: 'mahope'
+branding:
+  icon: 'clipboard'
+  color: 'blue'
+inputs:
+  url:
+    description: 'URL to fetch and convert to Markdown'
+    required: true
+  mode:
+    description: 'Output format: "markdown" (default) or "plain"'
+    required: false
+    default: 'markdown'
+outputs:
+  markdown:
+    description: 'The converted content in Markdown or plain text'
+runs:
+  using: 'node24'
+  main: 'index.js'

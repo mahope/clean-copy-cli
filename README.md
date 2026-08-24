@@ -31,6 +31,8 @@ Requires Node.js 16+. No dependencies, no build step.
 
 ## Usage
 
+### CLI
+
 ```bash
 clean-copy [options] [file ...]     # convert files, or stdin if no file given
 clean-copy --url <url>              # fetch a page, extract its main content as Markdown
@@ -41,6 +43,29 @@ clean-copy -u https://example.com/article.md    # web page -> readable Markdown
 clean-copy -t notes.html                        # plain text instead of Markdown
 clean-copy -c dirty.html                        # also copy result to clipboard
 ```
+
+### GitHub Action
+
+Convert any URL to clean Markdown directly in your workflow:
+
+```yaml
+- uses: mahope/clean-copy-cli@v1
+  with:
+    url: 'https://example.com/article'
+  id: clean-copy
+
+- name: Save the result
+  run: echo "${{ steps.clean-copy.outputs.markdown }}" > article.md
+```
+
+The action fetches the URL, extracts the main readable content, and converts it to Markdown (or plain text). Uses the same converter engine as the CLI and browser extension.
+
+| Input | Default | Description |
+|-------|---------|-------------|
+| `url` | (required) | URL to fetch and convert |
+| `mode` | `markdown` | Output format: `markdown` or `plain` |
+
+**Output:** `markdown` — the converted content.
 
 ### Options
 
