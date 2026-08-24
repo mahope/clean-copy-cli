@@ -118,15 +118,6 @@ function extractReadable(html) {
   // Strip <html> and <body> wrapper tags
   doc = doc.replace(/<\/?(?:html|body)\b[^>]*>/gi, '');
 
-  // Strip obvious boilerplate containers entirely
-  // MediaWiki maintenance boxes and print-only cruft
-  doc = doc.replace(/<table\b[^>]*\bclass=["'][^"']*(?:ambox|ombox|tmbox|cmbox|fmbox|mbox)[^"']*["'][^>]*>[\s\S]*?<\/table>/gi, '');
-  doc = doc.replace(/<(\w+)\b[^>]*\bclass=["'][^"']*(?:noprint|noexcerpt|shortdescription|navbox|vertical-navbox|metadata|mw-editsection|mw-jump-link|sidebar)[^"']*["'][^>]*>(?:(?!<\/\1[\s>])[\s\S])*?<\/\1>/gi, '');
-
-  doc = doc.replace(/<(nav|footer|header|aside|form|svg|iframe)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
-  // ARIA/role-based boilerplate: role="navigation"|"banner"|"contentinfo"|"complementary"
-  doc = doc.replace(/<(\w+)\b[^>]*\brole=["'](navigation|banner|contentinfo|complementary)["'][^>]*>[\s\S]*?<\/\1>/gi, '');
-
   // Pair each opening tag with its MATCHING close (depth counting), not
   // lastIndexOf — lastIndexOf pairs an outer wrapper with the document's final
   // close, so wrappers always outscore the real content block.
@@ -140,6 +131,56 @@ function extractReadable(html) {
     }
     return -1;
   };
+
+  // Strip obvious boilerplate containers entirely
+  // MediaWiki maintenance boxes and print-only cruft
+  doc = doc.replace(/<table\b[^>]*\bclass=["'][^"']*(?:ambox|ombox|tmbox|cmbox|fmbox|mbox)["'][^>]*>[^<]*(?:<(?!\/\1[\s>])[^<]*)*<\/\1>/gi, '');
+  // Class-based boilerplate (MediaWiki + generic sidebars). Removed via
+  // depth-matched close: a tempered-dot regex cannot cross child tags of the
+  // same name and would either over-eat or leave the close tag behind.
+  // Token-based match: "has-sidebar" (whole article tag!) must NOT match,
+  // so tokens are compared individually against an exact/pattern list.
+  const BOILER_TOKEN = /^(?:noprint|noexcerpt|shortdescription|navbox|vertical-navbox|metadata|mw-editsection|mw-jump-link|sidebar)(?:[-_](?!sidebar$)[a-z0-9_-]+)?$/;
+  // note: compound tokens like 'has-sidebar' do NOT match — the whole article
+  // carries that class on Ghost sites and must survive.
+  const UNUSED_MARKER = undefined;
+  const isBoilerClass = (cls) => cls.toLowerCase().split(/[^a-z0-9_-]+/).some((t) => BOILER_TOKEN.test(t));
+  const stripBoilerByClass = (d) => {
+    let m;
+    const re = /<(\w+)\b[^>]*\bclass=["']([^"']*)["'][^>]*>/gi;
+    while ((m = re.exec(d)) !== null) {
+      if (!isBoilerClass(m[2])) continue;
+      const openTagEnd = d.indexOf('>', m.index);
+      const closeIdx = matchingClose(d, openTagEnd + 1, m[1]);
+      if (closeIdx <= openTagEnd) continue;
+      return stripBoilerByClass(d.slice(0, m.index) + d.slice(closeIdx + ('</' + m[1] + '>').length));
+    }
+    return d;
+  };
+  doc = stripBoilerByClass(doc);
+
+  // Ad containers (.ad, .ad-leaderboard, .advert — exact class tokens so
+  // "admin"/"adapt" never match). Depth-matched removal like the boilerplate
+  // strip above; 404media-style sites put these inside the winning container.
+  const AD_TOKEN = /^(?:ad|ads|advert|adverts|advertisement|advertisements|advertorial)$/;
+  const stripAdsByClass = (d) => {
+    let m;
+    const re = /<(div|section|aside)\b[^>]*\bclass=["']([^"']*)["'][^>]*>/gi;
+    while ((m = re.exec(d)) !== null) {
+      const tokens = m[2].toLowerCase().split(/[^a-z0-9_-]+/);
+      if (!tokens.some((t) => AD_TOKEN.test(t))) continue;
+      const openTagEnd = d.indexOf('>', m.index);
+      const closeIdx = matchingClose(d, openTagEnd + 1, m[1]);
+      if (closeIdx <= openTagEnd) continue;
+      return stripAdsByClass(d.slice(0, m.index) + d.slice(closeIdx + ('</' + m[1] + '>').length));
+    }
+    return d;
+  };
+  doc = stripAdsByClass(doc);
+
+  doc = doc.replace(/<(nav|footer|header|aside|form|svg|iframe)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
+  // ARIA/role-based boilerplate: role="navigation"|"banner"|"contentinfo"|"complementary"
+  doc = doc.replace(/<(\w+)\b[^>]*\brole=["'](navigation|banner|contentinfo|complementary)["'][^>]*>[\s\S]*?<\/\1>/gi, '');
 
   // Microdata article body (schema.org via itemprop): Shopify storefronts and
   // many blogs mark the real prose with itemprop="articleBody" while larger

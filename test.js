@@ -176,5 +176,18 @@ tryUrl('https://blog.squarespace.com/how-to-start-a-blog', [
   ['starts in article prose', (o) => o.length > 3000 && /blog/i.test(o.slice(0, 300))],
 ]);
 
+// Ghost resources (Ghost CMS): nav chrome must not lead the output.
+tryUrl('https://ghost.org/resources/', [
+  ['does not start with ghost nav chrome', (o) => !/^(Sign in|Start here)/.test(o)],
+  ['contains substantial content', (o) => o.length > 2000],
+]);
+
+// 404media (Ghost-based news site): ad containers (.ad / .ad-leaderboard)
+// and sidebar must not lead the output; article prose starts first.
+tryUrl('https://www.404media.co/404-media-now-has-a-full-text-rss-feed/', [
+  ['does not start with ad chrome', (o) => !/^Advertisement|^Go ad free/.test(o)],
+  ['starts in article prose', (o) => o.length > 2000 && /full text RSS feeds/i.test(o)],
+]);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);
