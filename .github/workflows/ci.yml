@@ -31,7 +31,7 @@ jobs:
           url: 'https://example.com/'
       - name: Verify output
         run: |
-          echo "${{ steps.clean-copy.outputs.markdown }}" | grep -q 'Example Domain' || (echo 'FAIL: "Example Domain" not found'; exit 1)
+          printf '%s\n' "${{ steps.clean-copy.outputs.markdown }}" | grep -q 'Example Domain' || (echo 'FAIL: "Example Domain" not found'; exit 1)
           echo "✅ URL action test passed"
       - name: Test plain mode
         id: clean-copy-plain
@@ -41,7 +41,7 @@ jobs:
           mode: 'plain'
       - name: Verify plain output
         run: |
-          echo "${{ steps.clean-copy-plain.outputs.markdown }}" | grep -q 'Example Domain' || (echo 'FAIL: plain mode failed'; exit 1)
+          printf '%s\n' "${{ steps.clean-copy-plain.outputs.markdown }}" | grep -q 'Example Domain' || (echo 'FAIL: plain mode failed'; exit 1)
           echo "✅ Plain mode test passed"
 
   test-file-input:
@@ -61,8 +61,8 @@ jobs:
           file: /tmp/test.html
       - name: Verify file output
         run: |
-          echo "${{ steps.convert-file.outputs.markdown }}" | grep -q 'File Input Test' || (echo 'FAIL: title not found'; exit 1)
-          echo "${{ steps.convert-file.outputs.markdown }}" | grep -q '**bold**' || (echo 'FAIL: bold not found'; exit 1)
+          printf '%s\n' "${{ steps.convert-file.outputs.markdown }}" | grep -q 'File Input Test' || (echo 'FAIL: title not found'; exit 1)
+          printf '%s\n' "${{ steps.convert-file.outputs.markdown }}" | grep -q 'bold' || (echo 'FAIL: bold not found'; exit 1)
           echo "✅ File input test passed"
 
   test-html-input:
@@ -77,8 +77,8 @@ jobs:
           html: '<h1>Raw HTML</h1><ul><li>Item 1</li><li>Item 2</li></ul>'
       - name: Verify html output
         run: |
-          echo "${{ steps.convert-html.outputs.markdown }}" | grep -q 'Raw HTML' || (echo 'FAIL: title not found'; exit 1)
-          echo "${{ steps.convert-html.outputs.markdown }}" | grep -q '- Item 1' || (echo 'FAIL: list item not found'; exit 1)
+          printf '%s\n' "${{ steps.convert-html.outputs.markdown }}" | grep -q 'Raw HTML' || (echo 'FAIL: title not found'; exit 1)
+          printf '%s\n' "${{ steps.convert-html.outputs.markdown }}" | grep -q 'Item 1' || (echo 'FAIL: list item not found'; exit 1)
           echo "✅ HTML input test passed"
 
   test-output-file:
