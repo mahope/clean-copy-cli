@@ -9,12 +9,7 @@
 
 **Copy/paste text as clean Markdown or plain text** — straight from your terminal. The same converter engine that powers the [Clean Copy browser extensions](https://github.com/mahope/clean-copy), packaged as a zero-dependency Node.js CLI.
 
-```bash
-echo '<h1>Title</h1><p>Some <b>bold</b> text</p>' | clean-copy
-# Title
-
-Some **bold** text
-```
+![CLI demo](demo-cli.gif)
 
 ## Use cases
 
