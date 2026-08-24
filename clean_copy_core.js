@@ -37,6 +37,22 @@ function htmlToMarkdown(html) {
   // otherwise JS/CSS text leaks into the output as plain text.
   md = md.replace(/<(script|style|noscript|template|head)\b[^>]*>[\s\S]*?<\/\1>/gi, '');
 
+  // CDATA sections: keep the raw content instead of dropping everything.
+  md = md.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
+
+  // Definition lists: <dt> becomes a bold term line, <dd> an indented line.
+  md = md.replace(/<dl[^>]*>([\s\S]*?)<\/dl>/gi, (_, body) => {
+    const parts = [];
+    const re = /<(dt|dd)[^>]*>([\s\S]*?)<\/\1>/gi;
+    let m;
+    while ((m = re.exec(body)) !== null) {
+      const text = m[2].replace(/<[^>]*>/g, '').trim();
+      if (!text) continue;
+      parts.push(m[1].toLowerCase() === 'dt' ? '**' + text + '**' : ':   ' + text);
+    }
+    return parts.length ? '\n' + parts.join('\n') + '\n\n' : '';
+  });
+
   md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '# $1\n\n');
   md = md.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '## $1\n\n');
   md = md.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '### $1\n\n');
