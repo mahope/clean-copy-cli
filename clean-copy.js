@@ -160,15 +160,6 @@ function extractReadable(html) {
   // ARIA/role-based boilerplate: role="navigation"|"banner"|"contentinfo"|"complementary"
   doc = doc.replace(/<(\w+)\b[^>]*\brole=["'](navigation|banner|contentinfo|complementary)["'][^>]*>[\s\S]*?<\/\1>/gi, '');
 
-  // Prefer structured article body when present (news sites, blogs)
-  const jsonld = /application\/ld\+json[\s\S]*?"articleBody"\s*:\s*"((?:[^"\\]|\\.)*)"/i.exec(doc);
-  if (jsonld && jsonld[1].length > 200) {
-    try {
-      const text = JSON.parse('"' + jsonld[1] + '"');
-      return '<p>' + text.replace(/\n\n+/g, '</p><p>').replace(/\n/g, ' ') + '</p>';
-    } catch { /* fall through to DOM heuristic */ }
-  }
-
   // Pair each opening tag with its MATCHING close (depth counting), not
   // lastIndexOf — lastIndexOf pairs an outer wrapper with the document's final
   // close, so wrappers always outscore the real content block.
@@ -182,6 +173,26 @@ function extractReadable(html) {
     }
     return -1;
   };
+
+  // Microdata article body (schema.org via itemprop): Shopify storefronts and
+  // many blogs mark the real prose with itemprop="articleBody" while larger
+  // nav-heavy wrappers sit around it — take the marked block verbatim.
+  const micro = /<(\w+)\b[^>]*\bitemprop=["']articleBody["'][^>]*>/i.exec(doc);
+  if (micro) {
+    const openTagEnd = doc.indexOf('>', micro.index);
+    const closeIdx = matchingClose(doc, openTagEnd + 1, micro[1]);
+    if (closeIdx > openTagEnd) return doc.slice(openTagEnd + 1, closeIdx);
+  }
+
+  // Prefer structured article body when present (news sites, blogs)
+  const jsonld = /application\/ld\+json[\s\S]*?"articleBody"\s*:\s*"((?:[^"\\]|\\.)*)"/i.exec(doc);
+  if (jsonld && jsonld[1].length > 200) {
+    try {
+      const text = JSON.parse('"' + jsonld[1] + '"');
+      return '<p>' + text.replace(/\n\n+/g, '</p><p>').replace(/\n/g, ' ') + '</p>';
+    } catch { /* fall through to DOM heuristic */ }
+  }
+
   const candidates = [];
   const re = /<(article|main|div|section)\b[^>]*>/gi;
   let m;
@@ -211,7 +222,10 @@ function extractReadable(html) {
       linksLen += lm[1].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().length;
     }
     const density = text.length ? linksLen / text.length : 1;
-    const score = text.length * (1 - density * 0.8);
+    let score = text.length * (1 - density * 0.8);
+    // A real <article> element is a strong signal this is the content block,
+    // even when a bigger nav-tangled wrapper scores slightly higher on size.
+    if (/^article$/i.test(tag)) score *= 1.25;
     if (score > bestScore) { best = inner; bestScore = score; }
   }
   if (best) doc = best;

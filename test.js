@@ -157,5 +157,18 @@ tryUrl('https://en.wikipedia.org/wiki/Markdown', [
    (o) => !/^(From Wikipedia|Skip to content|This article \*\*relies)/.test(o)],
   ['contains main article prose', (o) => /Markdown/.test(o) && o.length > 5000],
 ]);
+
+// Shopify (custom storefront): itemprop=articleBody microdata must win over
+// the nav-heavy promo banner wrapper.
+tryUrl('https://www.shopify.com/blog/what-is-ecommerce', [
+  ['does not start with promo banner', (o) => !/^Start selling with Shopify/.test(o)],
+  ['starts in article prose', (o) => o.length > 3000 && /ecommerce/i.test(o.slice(0, 2000))],
+]);
+
+// Wix blog: page chrome ("top of page", signup CTA) must not lead the output.
+tryUrl('https://www.wix.com/blog/what-is-a-blog', [
+  ['does not start with wix chrome', (o) => !/^top of page|^Try for free|^Start Now/.test(o)],
+  ['contains article prose', (o) => o.length > 2000],
+]);
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);
