@@ -186,6 +186,12 @@ function htmlToMarkdown(html) {
   md = md.replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, '![]($1)');
 
   md = md.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gis, (_, code) => {
+    // Extract language from class on <code> or <pre>: common patterns
+    // are class="language-javascript", class="lang-js", class="brush: python"
+    let lang = '';
+    const langMatch = /<code[^>]*class=["'][^"']*\b(?:language-|lang-|brush:\s*)([a-zA-Z0-9+#_]+)\b[^"']*["'][^>]*>/i.exec(code)
+      || /<pre[^>]*class=["'][^"']*\b(?:language-|lang-)([a-zA-Z0-9+#_]+)\b[^"']*["'][^>]*>/i.exec(code);
+    if (langMatch) lang = langMatch[1].toLowerCase();
     code = code.replace(/<code[^>]*>/gi, '').replace(/<\/code>/gi, '');
     code = code.replace(/<br\s*\/?>/gi, '\n');
     // NOTE: do NOT decode HTML entities here. Decoding &lt; to "<" before
@@ -193,7 +199,7 @@ function htmlToMarkdown(html) {
     // tag ("<b&gt;" -> strip eats everything to the next ">"), which wiped
     // out fenced-code content on real pages (MDN docs). The final decode
     // below (after stripping) handles entities correctly.
-    return '```\n' + code.trim() + '\n```\n\n';
+    return '```' + lang + '\n' + code.trim() + '\n```\n\n';
   });
 
   md = md.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
