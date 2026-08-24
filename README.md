@@ -1,6 +1,6 @@
 # clean-copy (CLI)
 
-[![Version](https://img.shields.io/badge/version-1.3.10-blue)](https://github.com/mahope/clean-copy-cli/releases)
+[![Version](https://img.shields.io/badge/version-1.4.1-blue)](https://github.com/mahope/clean-copy-cli/releases)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![Homebrew](https://img.shields.io/badge/homebrew-available-green)](https://github.com/mahope/homebrew-clean-copy)
 [![GitHub Action](https://img.shields.io/badge/GitHub%20Action-available-green)](https://github.com/marketplace/actions/clean-copy-html-to-markdown)
@@ -40,7 +40,7 @@ brew install clean-copy
 ### Direct download (no package manager)
 
 ```bash
-curl -L https://github.com/mahope/clean-copy-cli/releases/download/v1.3.10/clean-copy-1.3.10.tar.gz \
+curl -L https://github.com/mahope/clean-copy-cli/releases/download/v1.4.1/clean-copy-1.4.1.tar.gz \
   | tar xz --strip-components=1
 sudo cp clean-copy.js /usr/local/bin/clean-copy
 ```

@@ -224,30 +224,58 @@ function htmlToMarkdown(html) {
   // nested inside cells survive instead of being torn apart by a lazy
   // outer match that stops at the inner </table>.
   let tblPrev;
+  // Column alignment: collect text-align from th/td style/align attrs per column
+  // (header row wins; first non-default declaration sets it). Returns ':---',
+  // '---:', ':---:' or ' --- '.
+  const alignOf = (tag) => {
+    const style = (tag.match(/style\s*=\s*[\x22\x27]([^\x22\x27]*)[\x22\x27]/i) || [])[1] || '';
+    const attr = (tag.match(/\balign\s*=\s*[\x22\x27]([^\x22\x27]*)[\x22\x27]/i) || [])[1] || '';
+    const hay = (style.replace(/;/g, ' ') + ' ' + attr).toLowerCase();
+    if (/text-align\s*:\s*(center|right|left)|\b(center|right|left)\b/.test(hay)) {
+      if (/\bleft\b/.test(hay)) return ':---';
+      if (/\bright\b/.test(hay)) return '---:';
+      if (/\bcenter\b/.test(hay)) return ':---:';
+    }
+    return null;
+  };
   const convertTable = (_, tableHtml) => {
     const cellText = (cellHtml) => {
       let t = htmlToMarkdown(cellHtml);
       return t.replace(/\s*\n+\s*/g, ' ').replace(/\|/g, '\\|').trim();
     };
     const rows = [];
+    const aligns = [];
     const trRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
     let trm;
     while ((trm = trRe.exec(tableHtml)) !== null) {
       const cells = [];
-      const cellRe = /<(th|td)[^>]*(?:colspan\s*=\s*[\x22\x27]?(\d+)[\x22\x27]?)?[^>]*>([\s\S]*?)<\/\1>/gi;
+      const rowAligns = [];
+      const cellRe = /<(th|td)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
       let cm;
       while ((cm = cellRe.exec(trm[1])) !== null) {
         cells.push(cellText(cm[3]));
-        const span = Math.max(1, parseInt(cm[2] || '1', 10) || 1);
-        for (let s = 1; s < span; s++) cells.push('');
+        const spanMatch = /colspan\s*=\s*[\x22\x27]?(\d+)[\x22\x27]?/i.exec(cm[2]);
+        const span = Math.max(1, parseInt(spanMatch ? spanMatch[1] : '1', 10) || 1);
+        for (let s = 0; s < span; s++) {
+          if (s === 0) rowAligns.push(alignOf(cm[2]));
+          else rowAligns.push(null);
+        }
       }
       rows.push(cells);
+      aligns.push(rowAligns);
     }
     if (rows.length === 0) return '';
     const cols = Math.max(...rows.map(r => r.length));
     rows.forEach(r => { while (r.length < cols) r.push(''); });
+    aligns.forEach(a => { while (a.length < cols) a.push(null); });
+    // Header alignment wins over body rows.
+    const colAlign = Array(cols).fill(null);
+    for (let c = 0; c < cols; c++) {
+      for (const a of aligns) { if (a[c]) { colAlign[c] = a[c]; break; } }
+    }
+    const sepRow = Array.from({length: cols}, (_, i) => colAlign[i] || ' --- ');
     const out = ['| ' + rows[0].join(' | ') + ' |',
-                 '|' + Array(cols).fill(' --- ').join('|') + '|'];
+                 '|' + sepRow.join('|') + '|'];
     for (let i = 1; i < rows.length; i++) {
       out.push('| ' + rows[i].join(' | ') + ' |');
     }

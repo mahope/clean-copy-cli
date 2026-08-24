@@ -62,6 +62,12 @@ check('nested list',
 check('table',
   run([], '<table><tr><th>H</th></tr><tr><td>x</td></tr></table>'),
   '| H |\n| --- |\n| x |');
+check('table column alignment (style + align attrs)',
+  run([], '<table><tr><th style="text-align:left">A</th><th align="center">B</th><th style="TEXT-ALIGN: right">C</th><th>D</th></tr><tr><td>1</td><td>2</td><td>3</td><td>4</td></tr></table>'),
+  '| A | B | C | D |\n|:---|:---:|---:| --- |\n| 1 | 2 | 3 | 4 |');
+check('table colspan with alignment pads correctly',
+  run([], '<table><tr><td colspan="2" align="right">wide</td></tr><tr><td>a</td><td>b</td></tr></table>'),
+  '| wide | |\n|---:| --- |\n| a | b |');
 
 // 8. entity decoding
 check('entities decoded', run([], '<pre><code>if (a&lt;b){}</code></pre>'), '```\nif (a<b){}\n```');
