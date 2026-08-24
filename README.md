@@ -163,6 +163,29 @@ Headings (`#`–`######`), bold/italic, links, images, nested lists, ordered lis
 
 The `--url` mode strips scripts, styles, nav/footer boilerplate and keeps the largest content block — good for articles, docs pages and blog posts.
 
+## Supported platforms
+
+The `--url` extraction mode is tested live (in `test.js`) against real pages
+from every major publishing platform. If it works on your site, it works —
+the extractor is CMS-agnostic and never requires anything installed on the
+server.
+
+| Platform | Live-tested example |
+|----------|---------------------|
+| MediaWiki | [Wikipedia](https://en.wikipedia.org/wiki/Markdown) |
+| Shopify (custom storefront) | [shopify.com/blog](https://www.shopify.com/blog/what-is-ecommerce) |
+| Wix | [wix.com/blog](https://www.wix.com/blog/what-is-a-blog) |
+| Squarespace | [blog.squarespace.com](https://blog.squarespace.com/how-to-start-a-blog) |
+| Ghost | [ghost.org/resources](https://ghost.org/resources/) · [404media.co](https://www.404media.co/404-media-now-has-a-full-text-rss-feed/) |
+| Substack | [Astral Codex Ten](https://www.astralcodexten.com/p/moderation-is-different-from-censorship) · [The Pragmatic Engineer](https://newsletter.pragmaticengineer.com/p/the-pulse-we-need-to-talk-about-migrations) |
+| Astro / static site | [joshwcomeau.com](https://www.joshwcomeau.com/blog/the-post-developer-era/) |
+| WordPress | [CSS-Tricks](https://css-tricks.com/snippets/css/a-guide-to-flexbox/) |
+| Next.js | [deno.com/blog](https://deno.com/blog/v2.3) |
+| Eleventy | [v8.dev](https://v8.dev/blog/json-stringify) |
+| Custom static | [blog.rust-lang.org](https://blog.rust-lang.org/2026/08/21/enabling-next-solver-on-nightly/) |
+
+All of these run in CI on every push — a regression on any platform fails the build.
+
 ## Privacy
 
 No analytics, no tracking, no telemetry. The only network request ever made is the one *you* trigger with `--url`. Everything else runs locally.
