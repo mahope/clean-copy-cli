@@ -173,7 +173,7 @@ server.
 | Squarespace | [blog.squarespace.com](https://blog.squarespace.com/how-to-start-a-blog) |
 | Ghost | [ghost.org/resources](https://ghost.org/resources/) · [404media.co](https://www.404media.co/404-media-now-has-a-full-text-rss-feed/) |
 | Substack | [Astral Codex Ten](https://www.astralcodexten.com/p/moderation-is-different-from-censorship) · [The Pragmatic Engineer](https://newsletter.pragmaticengineer.com/p/the-pulse-we-need-to-talk-about-migrations) |
-| Astro / static site | [joshwcomeau.com](https://www.joshwcomeau.com/blog/the-post-developer-era/) |
+| Astro / static site | [astro.build](https://astro.build/blog/astro-720/) |
 | WordPress | [CSS-Tricks](https://css-tricks.com/snippets/css/a-guide-to-flexbox/) |
 | Next.js | [deno.com/blog](https://deno.com/blog/v2.3) |
 | Eleventy | [v8.dev](https://v8.dev/blog/json-stringify) |

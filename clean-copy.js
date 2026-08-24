@@ -322,7 +322,17 @@ async function main() {
   let input;
   if (opts.url) {
     if (!opts.quiet) console.error(`clean-copy: fetching ${opts.url}`);
-    input = extractReadable(await fetchUrl(opts.url));
+    // Some platforms (e.g. Wix) intermittently serve an empty/truncated body
+    // to non-browser clients. Retry before giving up — a second fetch almost
+    // always returns the real page.
+    let html = await fetchUrl(opts.url);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const extracted = extractReadable(html);
+      if (extracted.trim().length > 0) break;
+      if (!opts.quiet) console.error('clean-copy: empty page body, retrying…');
+      html = await fetchUrl(opts.url);
+    }
+    input = extractReadable(html);
   } else if (opts.files.length > 0) {
     input = extractReadable(opts.files.map((f) => fs.readFileSync(f, 'utf8')).join('\n\n'));
   } else {
