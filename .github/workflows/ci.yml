@@ -61,9 +61,11 @@ jobs:
         with:
           html: '<table><tr><th>Name</th></tr><tr><td>value, with comma</td></tr></table>'
           mode: 'csv'
+          output_file: '/tmp/out.csv'
       - name: Verify csv output
         run: |
-          printf '%s\n' "${{ steps.clean-copy-csv.outputs.markdown }}" | grep -q '"value, with comma"' || (echo 'FAIL: csv mode failed'; exit 1)
+          cat /tmp/out.csv
+          grep -q '"value, with comma"' /tmp/out.csv || (echo 'FAIL: csv mode failed'; exit 1)
           echo "✅ CSV mode test passed"
 
       - name: Test invalid mode fails cleanly
