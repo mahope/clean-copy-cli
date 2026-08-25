@@ -381,6 +381,60 @@ function htmlToWikilinks(html) {
   return out.join('\n');
 }
 
+/**
+ * htmlToCsv(html) — CSV table mode.
+ * Converts HTML tables to comma-separated rows (RFC 4180 quoting), ready to
+ * paste straight into Excel/Google Sheets or save as .csv.
+ *
+ * Strategy: reuse htmlToMarkdown (it already produces reliable pipe tables,
+ * handles colspan padding, nested tables and inline markup), then transform
+ * every pipe-table block into CSV rows. Non-table content is dropped when at
+ * least one table exists (mixing prose into a spreadsheet import corrupts
+ * it); with no tables at all we fall back to cleaned plain text so the user
+ * always gets something useful.
+ */
+function htmlToCsv(html) {
+  const md = htmlToMarkdown(html);
+  const lines = md.split('\n');
+  const isRow = function (l) { return /^\s*\|.*\|\s*$/.test(l); };
+  const isSep = function (l) { return /^\s*\|(\s*:?-{2,}:?\s*\|)+\s*$/.test(l); };
+  const parseRow = function (l) {
+    var t = l.trim();
+    t = t.replace(/^\|/, '').replace(/\|$/, '');
+    // split on unescaped pipes only
+    return t.split(/(?<!\\)\|/).map(function (c) {
+      return c.trim().replace(/\\\|/g, '|');
+    });
+  };
+  var tables = [];
+  var cur = [];
+  for (var i = 0; i < lines.length; i++) {
+    if (isRow(lines[i])) {
+      if (!isSep(lines[i])) cur.push(parseRow(lines[i]));
+    } else if (cur.length) {
+      tables.push(cur); cur = [];
+    }
+  }
+  if (cur.length) tables.push(cur);
+
+  if (!tables.length) {
+    // No tables: fall back to cleaned plain text (never an empty result).
+    return cleanText(html.replace(/<[^>]*>/g, ' '));
+  }
+
+  var csvCell = function (s) {
+    s = String(s == null ? '' : s);
+    if (/[",\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  };
+  return tables.map(function (rows) {
+    return rows.map(function (cells) {
+      return cells.map(csvCell).join(',');
+    }).join('\n');
+  }).join('\n\n');
+}
+
+
   /* ── Pro: custom cleanup rules ─────────────────────────────────────
    * A rule is { find, replace, regex?, caseSensitive? }.
    * Non-regex rules are literal string replacements (all occurrences).
@@ -413,7 +467,7 @@ function htmlToWikilinks(html) {
   /** Pro: convert an array of HTML/plain snippets in one pass (batch).
    * Returns array of { ok, content?, error? } — one entry per input,
    never throws: a bad snippet yields { ok:false, error } and the rest
-   still convert. mode: 'markdown' | 'wikilinks' | 'plain'. extraRules: raw rule list. */
+   still convert. mode: 'markdown' | 'wikilinks' | 'csv' | 'plain'. extraRules: raw rule list. */
   function batchConvert(snippets, mode, extraRules) {
     var compiled = [];
     try {
@@ -429,6 +483,7 @@ function htmlToWikilinks(html) {
         var html = s && s.html != null ? s.html : String(s == null ? '' : s);
         var content = mode === 'markdown' ? htmlToMarkdown(html)
           : mode === 'wikilinks' ? htmlToWikilinks(html)
+          : mode === 'csv' ? htmlToCsv(html)
           : cleanText(html.replace(/<[^>]*>/g, ''));
         content = applyRules(content, compiled);
         return { ok: true, content: content };
@@ -438,5 +493,5 @@ function htmlToWikilinks(html) {
     });
   }
 
-  return { cleanText, htmlToMarkdown, htmlToWikilinks, compileRules, applyRules, batchConvert };
+  return { cleanText, htmlToMarkdown, htmlToWikilinks, htmlToCsv, compileRules, applyRules, batchConvert };
 });
