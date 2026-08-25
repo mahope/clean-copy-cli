@@ -40,6 +40,14 @@ curl -L https://github.com/mahope/clean-copy-cli/releases/download/v1.5.0/clean-
 sudo cp clean-copy.js /usr/local/bin/clean-copy
 ```
 
+### npx — run without installing (no account needed)
+
+```bash
+npx github:mahope/clean-copy-cli -u https://example.com
+# or install globally straight from GitHub:
+npm install -g github:mahope/clean-copy-cli
+```
+
 ### From source
 
 ```bash

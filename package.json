@@ -19,5 +19,11 @@
     "copy-paste"
   ],
   "license": "MIT",
-  "repository": "https://github.com/mahope/clean-copy-cli"
+  "repository": "https://github.com/mahope/clean-copy-cli",
+  "files": [
+    "clean-copy.js",
+    "clean_copy_core.js",
+    "README.md",
+    "LICENSE"
+  ]
 }
