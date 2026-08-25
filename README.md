@@ -1,6 +1,6 @@
 # clean-copy (CLI)
 
-[![Version](https://img.shields.io/badge/version-1.4.6-blue)](https://github.com/mahope/clean-copy-cli/releases)
+[![Version](https://img.shields.io/badge/version-1.5.0-blue)](https://github.com/mahope/clean-copy-cli/releases)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![Homebrew](https://img.shields.io/badge/homebrew-available-green)](https://github.com/mahope/homebrew-clean-copy)
 [![GitHub Action](https://img.shields.io/badge/GitHub%20Action-available-green)](https://github.com/marketplace/actions/clean-copy-html-to-markdown)
@@ -35,7 +35,7 @@ brew install clean-copy
 ### Direct download (no package manager)
 
 ```bash
-curl -L https://github.com/mahope/clean-copy-cli/releases/download/v1.4.6/clean-copy-1.4.6.tar.gz \
+curl -L https://github.com/mahope/clean-copy-cli/releases/download/v1.5.0/clean-copy-1.5.0.tar.gz \
   | tar xz --strip-components=1
 sudo cp clean-copy.js /usr/local/bin/clean-copy
 ```
@@ -147,6 +147,7 @@ jobs:
 |------|--------|
 | `-t`, `--text` | plain text output instead of Markdown |
 | `-w`, `--wikilinks` | Obsidian-style output: internal links become `[[WikiLinks]]`; external links, images and code blocks are untouched |
+| `-v`, `--csv` | tables become comma-separated CSV rows (RFC 4180); no tables → cleaned plain text |
 | `-u`, `--url URL` | fetch a web page and extract its main content |
 | `-o`, `--out FILE` | write to FILE instead of stdout |
 | `-c`, `--copy` | also copy the result to the system clipboard |
