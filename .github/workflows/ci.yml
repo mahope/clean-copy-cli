@@ -44,6 +44,40 @@ jobs:
           printf '%s\n' "${{ steps.clean-copy-plain.outputs.markdown }}" | grep -q 'Example Domain' || (echo 'FAIL: plain mode failed'; exit 1)
           echo "✅ Plain mode test passed"
 
+      - name: Test wikilinks mode
+        id: clean-copy-wikilinks
+        uses: ./
+        with:
+          html: '<p>See <a href="/docs/page">the docs page</a>.</p>'
+          mode: 'wikilinks'
+      - name: Verify wikilinks output
+        run: |
+          printf '%s\n' "${{ steps.clean-copy-wikilinks.outputs.markdown }}" | grep -q '\[\[the docs page\]\]' || (echo 'FAIL: wikilinks mode failed'; exit 1)
+          echo "✅ Wikilinks mode test passed"
+
+      - name: Test csv mode
+        id: clean-copy-csv
+        uses: ./
+        with:
+          html: '<table><tr><th>Name</th></tr><tr><td>value, with comma</td></tr></table>'
+          mode: 'csv'
+      - name: Verify csv output
+        run: |
+          printf '%s\n' "${{ steps.clean-copy-csv.outputs.markdown }}" | grep -q '"value, with comma"' || (echo 'FAIL: csv mode failed'; exit 1)
+          echo "✅ CSV mode test passed"
+
+      - name: Test invalid mode fails cleanly
+        id: clean-copy-invalid
+        uses: ./
+        continue-on-error: true
+        with:
+          html: '<p>x</p>'
+          mode: 'bogus'
+      - name: Verify invalid mode was rejected
+        run: |
+          [ "${{ steps.clean-copy-invalid.outcome }}" = "failure" ] || (echo 'FAIL: bogus mode should fail'; exit 1)
+          echo "✅ Invalid mode rejected"
+
   verify-tarball:
     runs-on: ubuntu-latest
     name: Verify release tarball is complete and runnable

@@ -19,7 +19,7 @@ inputs:
     description: 'Raw HTML string to convert (for CI pipelines that generate HTML)'
     required: false
   mode:
-    description: 'Output format: "markdown" (default) or "plain"'
+    description: 'Output format: "markdown" (default), "plain", "wikilinks" (Obsidian-style [[links]]) or "csv" (tables as CSV rows)'
     required: false
     default: 'markdown'
   output_file:

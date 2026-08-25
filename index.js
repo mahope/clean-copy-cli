@@ -9,7 +9,7 @@
  *   url          — URL to fetch and convert (optional, one of url/file/html required)
  *   file         — local file path to read and convert (optional)
  *   html         — raw HTML string to convert (optional)
- *   mode         — "markdown" (default) or "plain"
+ *   mode         — "markdown" (default), "plain", "wikilinks" or "csv"
  *   output_file  — write result to this file path (optional)
  *
  * Outputs:
@@ -261,7 +261,12 @@ function looksLikeHtmlDoc(input) {
 function convert(html, mode) {
   if (mode === 'plain') {
     const stripped = String(html).replace(/<[^>]*>/g, '\n');
-    return core.cleanText(stripped);
+    return core.cleanText(stripped).trim();
+  }
+  if (mode === 'wikilinks' || mode === 'csv') {
+    const r = core.batchConvert([String(html)], mode, true)[0];
+    if (!r.ok) throw new Error(r.error || `Conversion failed (${mode})`);
+    return r.content.trim();
   }
   const r = core.batchConvert([String(html)], 'markdown', true)[0];
   if (!r.ok) throw new Error(r.error || 'Conversion failed');
@@ -277,8 +282,8 @@ async function main() {
   const mode = getInput('mode') || 'markdown';
   const outputFile = getInput('output_file');
 
-  if (!['markdown', 'plain'].includes(mode)) {
-    setFailed(`Invalid mode: "${mode}". Must be "markdown" or "plain".`);
+  if (!['markdown', 'plain', 'wikilinks', 'csv'].includes(mode)) {
+    setFailed(`Invalid mode: "${mode}". Must be "markdown", "plain", "wikilinks" or "csv".`);
     return;
   }
 
