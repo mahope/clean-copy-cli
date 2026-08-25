@@ -25,11 +25,18 @@
 
 ## Install
 
+### One-line install (macOS / Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mahope/clean-copy-cli/main/tools/install.sh | bash
+```
+
+Installs to `~/.local/bin` (add it to PATH if it isn't already). Requires Node.js 16+.
+
 ### Homebrew (macOS / Linux, recommended)
 
 ```bash
-brew tap mahope/clean-copy
-brew install clean-copy
+brew install mahope/tap/clean-copy
 ```
 
 ### Direct download (no package manager)
