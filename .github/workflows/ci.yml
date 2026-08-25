@@ -97,6 +97,34 @@ jobs:
           grep -q README.md /tmp/contents.txt
           grep -q LICENSE /tmp/contents.txt
 
+  verify-homebrew-sha:
+    runs-on: ubuntu-latest
+    name: Homebrew formula sha256 must match the release tarball
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check formula version + sha256 against the published release asset
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          EXPECTED_URL="https://github.com/mahope/clean-copy-cli/releases/download/v${VERSION}/clean-copy-${VERSION}.tar.gz"
+          FORMULA_URL="https://raw.githubusercontent.com/mahope/homebrew-clean-copy/main/Formula/clean-copy.rb"
+          curl -fsSL "$FORMULA_URL" -o /tmp/formula.rb || { echo 'FAIL: could not fetch formula'; exit 1; }
+          FURL=$(grep -E '^  url ' /tmp/formula.rb | sed 's/.*url "//;s/"$//')
+          FSHA=$(grep -E '^  sha256 ' /tmp/formula.rb | sed 's/.*sha256 "//;s/"$//')
+          [ "$FURL" = "$EXPECTED_URL" ] || { echo "FAIL: formula url does not point at v${VERSION}: $FURL"; exit 1; }
+          curl -fsSL "$FURL" -o /tmp/asset.tar.gz || { echo "FAIL: release asset missing: $FURL"; exit 1; }
+          ASHA=$(sha256sum /tmp/asset.tar.gz | cut -d' ' -f1)
+          echo "formula sha: $FSHA"
+          echo "asset   sha: $ASHA"
+          [ "$FSHA" = "$ASHA" ] || { echo 'FAIL: formula sha256 does not match the published release asset'; exit 1; }
+          # the asset must contain the runnable CLI
+          rm -rf /tmp/ax && mkdir /tmp/ax && tar -xzf /tmp/asset.tar.gz -C /tmp/ax
+          grep -q '"version"' /tmp/ax/package.json
+          grep -q clean_copy_core <(tar -tzf /tmp/asset.tar.gz)
+          echo "✅ Formula matches the published release asset"
+
   test-file-input:
     runs-on: ubuntu-latest
     name: Test GitHub Action (file input)

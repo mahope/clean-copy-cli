@@ -16,7 +16,11 @@ for f in clean-copy.js clean_copy_core.js package.json README.md LICENSE; do
   cp "$f" "$STAGE/"
 done
 
-tar -czf "$OUT" -C "$STAGE" .
+# Deterministic build so the sha256 is reproducible across machines
+# (required for the Homebrew-sha CI check): fixed file mtimes, sorted
+# entries, and gzip -n (no timestamp/name in the gzip header).
+touch -t 197001010000 "$STAGE"/*
+(cd "$STAGE" && ls | LC_ALL=C sort | tar -cf - --no-recursion -T -) | gzip -n -9 > "$OUT"
 
 # Self-check 1: extract somewhere fresh and run it
 CHECK=$(mktemp -d)
