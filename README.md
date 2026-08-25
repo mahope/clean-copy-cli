@@ -146,6 +146,7 @@ jobs:
 | Flag | Effect |
 |------|--------|
 | `-t`, `--text` | plain text output instead of Markdown |
+| `-w`, `--wikilinks` | Obsidian-style output: internal links become `[[WikiLinks]]`; external links, images and code blocks are untouched |
 | `-u`, `--url URL` | fetch a web page and extract its main content |
 | `-o`, `--out FILE` | write to FILE instead of stdout |
 | `-c`, `--copy` | also copy the result to the system clipboard |
