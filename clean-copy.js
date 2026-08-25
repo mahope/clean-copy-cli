@@ -48,6 +48,7 @@ function parseArgs(argv) {
     switch (a) {
       case '-t': case '--text': opts.mode = 'text'; break;
       case '-m': case '--markdown': opts.mode = 'markdown'; break;
+      case '-w': case '--wikilinks': opts.mode = 'wikilinks'; break;
       case '-u': case '--url': opts.url = argv[++i]; break;
       case '-o': case '--out': opts.out = argv[++i]; break;
       case '-c': case '--copy': opts.copy = true; break;
@@ -84,6 +85,7 @@ Usage:
 
 Options:
   -t, --text       plain text output instead of Markdown
+  -w, --wikilinks  Obsidian-style output: internal links become [[WikiLinks]]
   -u, --url URL    fetch a web page and extract its main content as Markdown
   -o, --out FILE   write to FILE instead of stdout
   -c, --copy       also copy the result to the system clipboard
@@ -302,7 +304,8 @@ function convert(inputHtmlOrText, opts) {
     const stripped = String(inputHtmlOrText).replace(/<[^>]*>/g, '\n');
     return core.cleanText(stripped);
   }
-  const r = core.batchConvert([String(inputHtmlOrText)], 'markdown', true)[0];
+  const mode = opts.mode === 'wikilinks' ? 'wikilinks' : 'markdown';
+  const r = core.batchConvert([String(inputHtmlOrText)], mode, true)[0];
   if (!r.ok) throw new Error(r.error || 'conversion failed');
   return r.content.trim();
 }

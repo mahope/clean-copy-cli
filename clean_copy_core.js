@@ -356,6 +356,31 @@ function htmlToMarkdown(html) {
   return cleanText(md);
 }
 
+/**
+ * Wikilinks mode (for Obsidian/Roam-style vaults): convert like Markdown,
+ * then turn INTERNAL links into [[WikiLinks]]. External links (http/https/
+ * mailto), fragment-only anchors and fenced code blocks are left untouched.
+ * A link is internal when its href has no scheme ("//" counts as scheme-less
+ * relative/site-rooted). Image syntax ![alt](src) is never converted.
+ */
+function htmlToWikilinks(html) {
+  const md = htmlToMarkdown(html);
+  const lines = md.split('\n');
+  let inFence = false;
+  const out = lines.map(function (line) {
+    if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; return line; }
+    if (inFence) return line;
+    return line.replace(/(!?)\[([^\]\n]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,
+      function (m, bang, text, href) {
+        if (bang === '!') return m;
+        // external schemes stay as normal Markdown links
+        if (/^(https?:|mailto:|ftp:|#)/i.test(href)) return m;
+        return '[[' + text + ']]';
+      });
+  });
+  return out.join('\n');
+}
+
   /* ── Pro: custom cleanup rules ─────────────────────────────────────
    * A rule is { find, replace, regex?, caseSensitive? }.
    * Non-regex rules are literal string replacements (all occurrences).
@@ -387,8 +412,8 @@ function htmlToMarkdown(html) {
 
   /** Pro: convert an array of HTML/plain snippets in one pass (batch).
    * Returns array of { ok, content?, error? } — one entry per input,
-   * never throws: a bad snippet yields { ok:false, error } and the rest
-   * still convert. mode: 'markdown' | 'plain'. extraRules: raw rule list. */
+   never throws: a bad snippet yields { ok:false, error } and the rest
+   still convert. mode: 'markdown' | 'wikilinks' | 'plain'. extraRules: raw rule list. */
   function batchConvert(snippets, mode, extraRules) {
     var compiled = [];
     try {
@@ -402,7 +427,9 @@ function htmlToMarkdown(html) {
     return (snippets || []).map(function (s) {
       try {
         var html = s && s.html != null ? s.html : String(s == null ? '' : s);
-        var content = mode === 'markdown' ? htmlToMarkdown(html) : cleanText(html.replace(/<[^>]*>/g, ''));
+        var content = mode === 'markdown' ? htmlToMarkdown(html)
+          : mode === 'wikilinks' ? htmlToWikilinks(html)
+          : cleanText(html.replace(/<[^>]*>/g, ''));
         content = applyRules(content, compiled);
         return { ok: true, content: content };
       } catch (err) {
@@ -411,5 +438,5 @@ function htmlToMarkdown(html) {
     });
   }
 
-  return { cleanText, htmlToMarkdown, compileRules, applyRules, batchConvert };
+  return { cleanText, htmlToMarkdown, htmlToWikilinks, compileRules, applyRules, batchConvert };
 });
