@@ -3,7 +3,7 @@
 # Usage: curl -fsSL https://raw.githubusercontent.com/mahope/clean-copy-cli/main/tools/install.sh | bash
 set -e
 
-VERSION="v1.5.0"
+VERSION="v1.5.2"
 PREFIX="${HOME}/.local"
 BIN_DIR="$PREFIX/bin"
 
