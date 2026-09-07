@@ -7,7 +7,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D16-brightgreen)](https://nodejs.org)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
 
-**Copy/paste text as clean Markdown or plain text** — straight from your terminal. The same converter engine that powers the [Clean Copy browser extensions](https://github.com/mahope/clean-copy), packaged as a zero-dependency Node.js CLI.
+**Copy/paste text as clean Markdown or plain text** — straight from your terminal. The same converter engine that powers the [Clean Copy browser extensions](https://github.com/mahope/clean-copy), packaged as a zero-dependency Node.js CLI. Product page: https://cleancopy.tools/
 
 ![CLI demo](demo-cli.gif)
 
@@ -51,7 +51,7 @@ sudo cp clean-copy.js /usr/local/bin/clean-copy
 
 ```bash
 npx @mahope/clean-copy -u https://example.com
-# or install globally straight from GitHub:
+# or install globally:
 npm install -g @mahope/clean-copy
 ```
 
@@ -205,3 +205,7 @@ No analytics, no tracking, no telemetry. The only network request ever made is t
 ## License
 
 MIT
+
+## Author
+
+Built by Mads Holst Jensen — developer and technical partner for small businesses, Odense, Denmark. https://mahoje.dk
