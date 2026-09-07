@@ -202,6 +202,11 @@ All of these run in CI on every push — a regression on any platform fails the 
 
 No analytics, no tracking, no telemetry. The only network request ever made is the one *you* trigger with `--url`. Everything else runs locally.
 
+## Releasing
+
+`npm run release -- patch` (or `minor`/`major`) bumps the version, commits and pushes the tag.
+CI publishes to npm and creates the GitHub release.
+
 ## License
 
 MIT

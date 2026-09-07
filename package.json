@@ -7,7 +7,8 @@
     "clean-copy": "clean-copy.js"
   },
   "scripts": {
-    "test": "node test.js"
+    "test": "node test.js",
+    "release": "node tools/release.mjs"
   },
   "keywords": [
     "markdown",
