@@ -9,7 +9,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Test GitHub Action (URL to Markdown)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Convert example.com to Markdown
         id: clean-copy
         uses: ./
@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Verify release tarball is complete and runnable
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -101,7 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Homebrew formula sha256 must match the release tarball
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -129,7 +129,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Test GitHub Action (file input)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Create a test HTML file
         run: |
           cat > /tmp/test.html << 'EOF'
@@ -150,7 +150,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Test GitHub Action (html input)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Convert raw HTML to Markdown
         id: convert-html
         uses: ./
@@ -166,7 +166,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Test GitHub Action (output_file)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Convert with output_file
         uses: ./
         with:
