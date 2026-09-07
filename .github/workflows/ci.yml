@@ -109,6 +109,10 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           EXPECTED_URL="https://github.com/mahope/clean-copy-cli/releases/download/v${VERSION}/clean-copy-${VERSION}.tar.gz"
+          if ! curl -fsIL -o /dev/null "$EXPECTED_URL"; then
+            echo "SKIP: v${VERSION} is not released yet (the tap is bumped by homebrew-bump.yml on release)"
+            exit 0
+          fi
           FORMULA_URL="https://raw.githubusercontent.com/mahope/homebrew-tap/main/Formula/clean-copy.rb"
           curl -fsSL "$FORMULA_URL" -o /tmp/formula.rb || { echo 'FAIL: could not fetch formula'; exit 1; }
           FURL=$(grep -E '^  url ' /tmp/formula.rb | sed 's/.*url "//;s/"$//')
