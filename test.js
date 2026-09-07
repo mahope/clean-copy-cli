@@ -166,6 +166,12 @@ function tryUrl(url, checks, opts) {
     console.log('  SKIP ' + url + (short ? ' (repeatedly served truncated body)' : ' (network error)'));
     return;
   }
+  // Bot-protection interstitials (Cloudflare and similar) are served to CI
+  // runners, not to readers. They say nothing about the extractor.
+  if (/^(Please wait while your request is being verified|Just a moment|Verifying you are human)/i.test(out.trim())) {
+    console.log('  SKIP ' + url + ' (bot-protection interstitial)');
+    return;
+  }
   for (const [name, fn] of checks) checkTrue(url + ': ' + name, fn(out), 'output started: ' + JSON.stringify(out.slice(0, 120)));
 }
 
