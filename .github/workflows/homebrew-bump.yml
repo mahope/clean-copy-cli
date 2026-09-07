@@ -1,0 +1,90 @@
+name: Bump Homebrew formula
+
+# On a vX.Y.Z tag: build the deterministic CLI tarball (tools/make_tarball.sh),
+# attach it to the GitHub release (publish.yml creates the release; this job
+# waits for it and creates it itself if it never appears), then update
+# Formula/clean-copy.rb in mahope/homebrew-tap with the new url + sha256.
+# Triggered on tag push rather than "release published" because releases made
+# with GITHUB_TOKEN do not raise events that start other workflows.
+# Requires the TAP_TOKEN secret (fine-grained GitHub PAT with contents:write
+# on mahope/homebrew-tap - same token as in deskuptime).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to bump to (e.g. v1.5.3); must be checked out at that tag's package.json version"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Version sanity check (package.json == tag)
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VER="$(node -p "require('./package.json').version")"
+          [ "$TAG" = "v${VER}" ] || { echo "::error::tag $TAG does not match package.json version ${VER}"; exit 1; }
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VER=$VER" >> "$GITHUB_ENV"
+
+      - name: Build deterministic tarball
+        run: |
+          rm -f clean-copy-*.tar.gz
+          bash tools/make_tarball.sh
+          FILE="clean-copy-${VER}.tar.gz"
+          [ -f "$FILE" ] || { echo "::error::$FILE was not produced"; exit 1; }
+          echo "FILE=$FILE" >> "$GITHUB_ENV"
+          echo "SHA256=$(sha256sum "$FILE" | awk '{print $1}')" >> "$GITHUB_ENV"
+
+      - name: Attach tarball to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # publish.yml creates the release from the same tag; give it a few minutes.
+          for i in $(seq 1 15); do
+            gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 && break
+            echo "release $TAG not created yet (attempt $i)"; sleep 20
+          done
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$FILE" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "$FILE" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
+          fi
+
+      - name: Update Formula/clean-copy.rb in mahope/homebrew-tap
+        env:
+          GH_TOKEN: ${{ secrets.TAP_TOKEN }}
+        run: |
+          [ -n "$GH_TOKEN" ] || { echo "::error::TAP_TOKEN secret not set"; exit 1; }
+          git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/mahope/homebrew-tap.git" tap
+          cd tap
+          F="Formula/clean-copy.rb"
+          [ -f "$F" ] || { echo "::error::$F missing in homebrew-tap"; exit 1; }
+          sed -i \
+            -e "s|releases/download/v[0-9.]*/clean-copy-[0-9.]*\\.tar\\.gz|releases/download/v${VER}/clean-copy-${VER}.tar.gz|" \
+            -e "s|sha256 \"[a-f0-9]*\"|sha256 \"${SHA256}\"|" \
+            "$F"
+          grep -q "clean-copy-${VER}.tar.gz" "$F" || { echo "::error::sed did not update the url"; exit 1; }
+          grep -q "$SHA256" "$F" || { echo "::error::sed did not update the sha256"; exit 1; }
+          git diff --stat
+          if git diff --quiet; then echo "formula already at ${VER}"; exit 0; fi
+          git config user.name "clean-copy-release-bot"
+          git config user.email "mads@mahope.dk"
+          git add "$F"
+          git commit -m "clean-copy ${VER}: bump url/sha (automated)"
+          git push
+          echo "tap updated to ${VER}"
