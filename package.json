@@ -1,7 +1,7 @@
 {
-  "name": "clean-copy-cli",
-  "version": "1.5.2",
-  "description": "Copy/paste text as clean Markdown or plain text \u2014 the Clean Copy converter as a command-line tool",
+  "name": "@mahope/clean-copy",
+  "version": "1.5.3",
+  "description": "Copy/paste text as clean Markdown or plain text — the Clean Copy converter as a command-line tool",
   "main": "clean-copy.js",
   "bin": {
     "clean-copy": "clean-copy.js"
@@ -19,11 +19,22 @@
     "copy-paste"
   ],
   "license": "MIT",
-  "repository": "https://github.com/mahope/clean-copy-cli",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mahope/clean-copy-cli.git"
+  },
   "files": [
     "clean-copy.js",
     "clean_copy_core.js",
     "README.md",
     "LICENSE"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://github.com/mahope/clean-copy-cli",
+  "bugs": "https://github.com/mahope/clean-copy-cli/issues",
+  "engines": {
+    "node": ">=18"
+  }
 }

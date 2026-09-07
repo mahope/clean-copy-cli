@@ -50,9 +50,9 @@ sudo cp clean-copy.js /usr/local/bin/clean-copy
 ### npx — run without installing (no account needed)
 
 ```bash
-npx github:mahope/clean-copy-cli -u https://example.com
+npx @mahope/clean-copy -u https://example.com
 # or install globally straight from GitHub:
-npm install -g github:mahope/clean-copy-cli
+npm install -g @mahope/clean-copy
 ```
 
 ### From source
